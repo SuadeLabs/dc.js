@@ -5415,6 +5415,7 @@ concrete chart types, e.g. bar chart, line chart, and bubble chart.
     * [.xAxisPaddingUnit([unit])](#CoordinateGridMixin+xAxisPaddingUnit) ⇒ <code>String</code> \| [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)
     * [.xUnitCount()](#CoordinateGridMixin+xUnitCount) ⇒ <code>Number</code>
     * [.useRightYAxis([useRightYAxis])](#CoordinateGridMixin+useRightYAxis) ⇒ <code>Boolean</code> \| [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)
+    * [.useCustomYRange([useCustomYRange])](#CoordinateGridMixin+useCustomYRange) ⇒ <code>Chart</code>
     * [.useTopXAxis([useTopXAxis])](#CoordinateGridMixin+useTopXAxis) ⇒ <code>Boolean</code> \| [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)
     * [.isOrdinal()](#CoordinateGridMixin+isOrdinal) ⇒ <code>Boolean</code>
     * [.xAxisLabel([labelText], [padding])](#CoordinateGridMixin+xAxisLabel) ⇒ <code>String</code>
@@ -5687,6 +5688,18 @@ chart.
 | Param | Type | Default |
 | --- | --- | --- |
 | [useRightYAxis] | <code>Boolean</code> | <code>false</code> | 
+
+<a name="CoordinateGridMixin+useCustomYRange"></a>
+
+### coordinateGridMixin.useCustomYRange([useCustomYRange]) ⇒ <code>Chart</code>
+Allows a set of custom ranges to be passed in to create more than one y axis for the data
+supplied by a crossfilter.
+
+**Kind**: instance method of [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)  
+
+| Param | Type |
+| --- | --- |
+| [useCustomYRange] | <code>any</code> | 
 
 <a name="CoordinateGridMixin+useTopXAxis"></a>
 

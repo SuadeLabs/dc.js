@@ -26,6 +26,7 @@ export * from './charts/bubble-chart';
 export * from './charts/bubble-overlay';
 export * from './charts/cbox-menu';
 export * from './charts/composite-chart';
+export * from './charts/composite-multi-axis-chart';
 export * from './charts/data-count';
 export * from './charts/data-grid';
 export * from './charts/data-table';
