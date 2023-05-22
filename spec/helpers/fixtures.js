@@ -257,3 +257,236 @@ function loadSunburstData10CompleteRings () {
         {"x0": "a", "x1": "a", "x2": "a", "x3": "a", "x4": "a", "x5": "a", "x6": "a", "x7": "a", "x8": "a", "x9": "a", "y": 1},
     ];
 }
+
+function loadMultiYAxisData () {
+    return [
+        [
+            {'key': 'testItem1', 'value': 20},
+            {'key': 'testItem2', 'value': 150},
+            {'key': 'testItem3', 'value': 200}
+        ], [
+            {'key': 'testItem1', 'value': 1000},
+            {'key': 'testItem2', 'value': 1899},
+            {'key': 'testItem3', 'value': 2000}
+        ], [
+            {'key': 'testItem1', 'value': 4466},
+            {'key': 'testItem2', 'value': 17082},
+            {'key': 'testItem3', 'value': 95382}
+        ], [
+            {'key': 'testItem1', 'value': 100296454.29},
+            {'key': 'testItem2', 'value': 229875909.02},
+            {'key': 'testItem3', 'value': 326088010.98}
+        ], [
+            {'key': 'testItem1', 'value': 22457.78},
+            {'key': 'testItem2', 'value': 13457.2},
+            {'key': 'testItem3', 'value': 3418.76}
+        ], [
+            {'key': 'testItem1', 'value': 0.1},
+            {'key': 'testItem2', 'value': 0.5},
+            {'key': 'testItem3', 'value': 0.8}
+        ], [
+            {'key': 'testItem1', 'value': 39890312},
+            {'key': 'testItem2', 'value': 583589448},
+            {'key': 'testItem3', 'value': 14850312}
+        ]];
+
+    //     {'testItem1': 20,'testItem2': 150,'testItem3': 200},
+    //     {'testItem1': 1000,'testItem2': 1899,'testItem3': 2000},
+    //     {'testItem1': 4466,'testItem2': 17082,'testItem3': 95382},
+    //     {'testItem1': 100296454.29,'testItem2': 229875909.02,'testItem3': 326088010.98},
+    //     {'testItem1': 22457.78,'testItem2': 13457.2,'testItem3': 3418.76},
+    //     {'testItem1': 0.1,'testItem2': 0.5,'testItem3': 0.8},
+    //     {'testItem1': 39890312,'testItem2': 583589448,'testItem3': 14850312 }
+    // ];
+}
+
+function loadMultiYChartData () {
+    return [
+        {
+            'type': 'bar',
+            'name': 'AxisTest1',
+            'dataFormat': 'key-value',
+            'xAxis': {
+                'type': 'label',
+                'seriesKey': 'key',
+                'label': ''
+            },
+            'yAxis': {
+                'type': 'linear',
+                'seriesKey': 'value',
+                'label': '',
+                'useRange': [
+                    20,
+                    200
+                ],
+                'min': 20,
+                'max': 200
+            },
+            'values': [
+                {
+                    'bonds': 20,
+                    'isa': 150,
+                    'savings': 200
+                }
+            ]
+        },
+        {
+            'type': 'bar',
+            'name': 'AxisTest2',
+            'dataFormat': 'key-value',
+            'xAxis': {
+                'type': 'label',
+                'seriesKey': 'key',
+                'label': ''
+            },
+            'yAxis': {
+                'type': 'linear',
+                'seriesKey': 'value',
+                'label': '',
+                'useRange': [
+                    1000,
+                    2000
+                ],
+                'min': 1000,
+                'max': 2000
+            },
+            'values': [
+                {
+                    'bonds': 1000,
+                    'isa': 1899,
+                    'savings': 2000
+                }
+            ]
+        },
+        {
+            'type': 'bar',
+            'name': 'AxisTest3',
+            'dataFormat': 'key-value',
+            'xAxis': {
+                'type': 'label',
+                'seriesKey': 'key',
+                'label': ''
+            },
+            'yAxis': {
+                'type': 'linear',
+                'seriesKey': 'value',
+                'label': '',
+                'useRange': [
+                    4466,
+                    95382
+                ],
+                'min': 4466,
+                'max': 95382
+            },
+            'values': [
+                {
+                    'bonds': 4466,
+                    'isa': 17082,
+                    'savings': 95382
+                }
+            ]
+        },
+        {
+            'type': 'bar',
+            'name': 'AxisTest4',
+            'dataFormat': 'key-value',
+            'xAxis': {
+                'type': 'label',
+                'seriesKey': 'key',
+                'label': ''
+            },
+            'yAxis': {
+                'type': 'linear',
+                'seriesKey': 'value',
+                'label': '',
+                'useRange': [
+                    100296454.29,
+                    326088010.98
+                ],
+                'min': 100296454.29,
+                'max': 326088010.98
+            },
+            'values': [
+                {
+                    'bonds': 100296454.29,
+                    'isa': 229875909.02,
+                    'savings': 326088010.98
+                }
+            ]
+        },
+        {
+            'type': 'bar',
+            'name': 'AxisTest5',
+            'dataFormat': 'key-value',
+            'xAxis': {
+                'type': 'label',
+                'seriesKey': 'key',
+                'label': ''
+            },
+            'yAxis': {
+                'type': 'linear',
+                'seriesKey': 'value',
+                'label': '',
+                'useRange': 'AxisTest3'
+            },
+            'values': [
+                {
+                    'bonds': 22457.78,
+                    'isa': 13457.2,
+                    'savings': 3418.76
+                }
+            ]
+        },
+        {
+            'type': 'bar',
+            'name': 'AxisTest6',
+            'dataFormat': 'key-value',
+            'xAxis': {
+                'type': 'label',
+                'seriesKey': 'key',
+                'label': ''
+            },
+            'yAxis': {
+                'type': 'linear',
+                'seriesKey': 'value',
+                'label': '',
+                'useRange': [
+                    0.1,
+                    1.0
+                ],
+                'min': 0,
+                'max': 0.8
+            },
+            'values': [
+                {
+                    'bonds': 0.1,
+                    'isa': 0.5,
+                    'savings': 0.8
+                }
+            ]
+        },
+        {
+            'type': 'bar',
+            'name': 'AxisTest7',
+            'dataFormat': 'key-value',
+            'xAxis': {
+                'type': 'label',
+                'seriesKey': 'key',
+                'label': ''
+            },
+            'yAxis': {
+                'type': 'linear',
+                'seriesKey': 'value',
+                'label': '',
+                'useRange': 'AxisTest4'
+            },
+            'values': [
+                {
+                    'bonds': 39890312,
+                    'isa': 583589448,
+                    'savings': 14850312
+                }
+            ]
+        }
+    ];
+}
