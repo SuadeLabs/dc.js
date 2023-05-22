@@ -28,7 +28,7 @@ more examples and hints please visit the [Wiki](https://github.com/dc-js/dc.js/w
 Install with npm
 --------------------
 ```
-npm install dc
+npm install @suadelabs/dc
 ```
 
 
