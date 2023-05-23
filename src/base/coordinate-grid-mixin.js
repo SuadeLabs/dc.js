@@ -96,6 +96,7 @@ export class CoordinateGridMixin extends ColorMixin(MarginMixin) {
         this._useTopXAxis = false;
 
         this._useCustomYRange = undefined;
+        this._domain = undefined;
     }
 
     /**
@@ -438,17 +439,17 @@ export class CoordinateGridMixin extends ColorMixin(MarginMixin) {
     /**
      * Allows a set of custom ranges to be passed in to create more than one y axis for the data
      * supplied by a crossfilter.
-     * @param {any} [useCustomYRange]
-     * @returns {Chart}
+     * @param {Function} [useCustomYRange=()=>{}]
+     * @param {String|Array} [domain]
+     * @returns {Function}
      */
-    useCustomYRange (useCustomYRange) {
-
+    useCustomYRange (useCustomYRange, domain) {
         if (!arguments.length) {
-            console.log('>>>>>> USE RANGE', useCustomYRange);
             return this._useCustomYRange;
         }
 
         this._useCustomYRange = useCustomYRange;
+        this._domain = domain;
 
         return this;
     }

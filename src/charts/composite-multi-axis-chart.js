@@ -1,5 +1,3 @@
-import {scaleLinear} from 'd3-scale';
-
 import {CompositeChart} from './composite-chart';
 import {transition} from '../core/core';
 
@@ -7,7 +5,6 @@ export class CompositeMultiAxisChart extends CompositeChart {
     constructor (parent, chartGroup) {
         super(parent, chartGroup);
 
-        // this.bar
         this._customRanges = [];
         this._barIdentifierPositions = {}
         this._lowestYMin = undefined;
@@ -15,14 +12,6 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
     _calculateYAxisRanges () {
         this._children.forEach((child, index) => {
-            if (typeof child._useCustomYRange !== 'string') {
-                const min = Math.min(...child._useCustomYRange);
-
-                if (index === 0 || min < this._lowestYMin) {
-                    this._lowestYMin = min;
-                }
-            }
-
             this._customRanges[child._groupName] = {range: child._useCustomYRange};
         });
     }
@@ -30,36 +19,13 @@ export class CompositeMultiAxisChart extends CompositeChart {
     _prepareYAxis () {
         this._calculateYAxisRanges();
 
-        this._children.forEach((child, index) => {
-            let range = child._useCustomYRange;
-
-            if (typeof child._useCustomYRange === 'string') {
-                range = this._customRanges[child._useCustomYRange].range;
-            }
-
-            let domain = [0, range[1]];
-
-            if (this._lowestYMin < 0) {
-                const yMax = Math.max(...[Math.abs(range[0]), Math.abs(range[1])])
-
-                // Need to use yMax value to align 0 across all axes when there are negative values
-                domain = [-yMax, yMax];
-                console.log('domain', domain)
-            }
-
+        this._children.forEach(child => {
             if (child.useRightYAxis()) {
-                this.rightY(scaleLinear()
-                  .domain(domain)
-                  .rangeRound([this.yAxisHeight(), 0])
-                  .nice()
+                this.rightY(child._useCustomYRange.rangeRound([this.yAxisHeight(), 0])
                 );
 
                 this._customRanges[child._groupName].y = this.rightY();
-            } else {
-                this.y(scaleLinear()
-                  .domain(domain)
-                  .rangeRound([this.yAxisHeight(), 0])
-                  .nice()
+            } else {this.y(child._useCustomYRange.rangeRound([this.yAxisHeight(), 0])
                 );
 
                 this._customRanges[child._groupName].y = this.y();
@@ -77,17 +43,11 @@ export class CompositeMultiAxisChart extends CompositeChart {
         .attr('cx', 0)
         .attr('cy', 20)
         .attr('r', 5)
-
-        console.log('>>>> child._groupName', child._groupName);
-        console.log('>>>> child.getColor(i)', child.getColor(index));
     }
 
     plotData () {
-        console.log('>>>> this.svg()', this.svg());
         for (let i = 0; i < this._children.length; ++i) {
             const child = this._children[i];
-
-            console.log('>>>> child', child);
 
             if (!child.g()) {
                 this._generateChildG(child, i);
@@ -99,8 +59,6 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
             child.x(this.x());
             child.xAxis(this.xAxis());
-
-            console.log('>>>> this._customRanges[child._groupName].y', this._customRanges[child._groupName].y);
 
             child.y(this._customRanges[child._groupName].y);
             child.yAxis(this.yAxis().scale(this._customRanges[child._groupName].y))
@@ -143,8 +101,8 @@ export class CompositeMultiAxisChart extends CompositeChart {
         .attr('cx', yAxisOffset);
     }
 
-    _createLeftYAxis (child,index) {
-        if (typeof child._useCustomYRange !== 'string') {
+    _createLeftYAxis (child, index) {
+        if (typeof child._domain !== 'string') {
             const yOffset = this.margins().left - index * (this.margins().left / this._leftYAxisChildren().length);
 
             this._updateBarIdentifierXPos(child._groupName, yOffset - 3);
@@ -154,16 +112,16 @@ export class CompositeMultiAxisChart extends CompositeChart {
                 `y${index}`,
                 this.yAxis().scale(this._customRanges[child._groupName].y),
                 yOffset
-            );
+                );
 
-            this.renderYAxisLabel(`y${index}`, this.yAxisLabel(), -90);
+                this.renderYAxisLabel(`y${index}`, this.yAxisLabel(), -90);
         } else {
-            this._updateBarIdentifierXPos(child._groupName, this._barIdentifierPositions[child._useCustomYRange] - 12)
+            this._updateBarIdentifierXPos(child._groupName, this._barIdentifierPositions[child._domain] - 15)
         }
     }
 
     _createRightYAxis (child, index) {
-        if (typeof child._useCustomYRange !== 'string') {
+        if (typeof child._domain !== 'string') {
             const yrOffset = this.width() - this.margins().right + index * (this.margins().right / this._rightYAxisChildren().length);
 
             this._updateBarIdentifierXPos(child._groupName, yrOffset);
@@ -177,7 +135,7 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
             this.renderYAxisLabel(`yr${index}`, this.rightYAxisLabel(), 90, this.width() - this._rightYAxisLabelPadding);
         } else {
-            this._updateBarIdentifierXPos(child._groupName, this._barIdentifierPositions[child._useCustomYRange] + 12)
+            this._updateBarIdentifierXPos(child._groupName, this._barIdentifierPositions[child._domain] + 15)
         }
     }
 }
