@@ -6,12 +6,15 @@ export class CompositeMultiAxisChart extends CompositeChart {
         super(parent, chartGroup);
 
         this._customRanges = [];
-        this._barIdentifierPositions = {}
-        this._lowestYMin = undefined;
+        this._markerPositions = {}
+        this._centerXAxis = false;
     }
 
     _calculateYAxisRanges () {
-        this._children.forEach((child, index) => {
+        this._children.forEach(child => {
+            if (child._domain[0] < 0) {
+                this._centerXAxis = true;
+            }
             this._customRanges[child._groupName] = {range: child._useCustomYRange};
         });
     }
@@ -21,28 +24,14 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
         this._children.forEach(child => {
             if (child.useRightYAxis()) {
-                this.rightY(child._useCustomYRange.rangeRound([this.yAxisHeight(), 0])
-                );
+                this.rightY(child._useCustomYRange.rangeRound([this.yAxisHeight(), 0]));
 
                 this._customRanges[child._groupName].y = this.rightY();
-            } else {this.y(child._useCustomYRange.rangeRound([this.yAxisHeight(), 0])
-                );
+            } else {this.y(child._useCustomYRange.rangeRound([this.yAxisHeight(), 0]));
 
                 this._customRanges[child._groupName].y = this.y();
             }
         })
-    }
-
-    _drawBarIdentifier (child, index) {
-        const yName = child._groupName.split(' ').join('').toLowerCase();
-
-        child.g()
-        .append('circle')
-        .attr('id', `${yName}-identifier`)
-        .attr('fill', child.getColor(index))
-        .attr('cx', 0)
-        .attr('cy', 20)
-        .attr('r', 5)
     }
 
     plotData () {
@@ -65,16 +54,28 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
             child.plotData();
 
-            this._drawBarIdentifier(child, i);
+            this._drawMarker(child, i);
 
             child._activateRenderlets();
         }
     }
 
+    _drawMarker (child, index) {
+        const yName = child._groupName.split(' ').join('').toLowerCase();
+
+        child.g()
+        .append('circle')
+        .attr('id', `${yName}-marker`)
+        .attr('fill', child.getColor(index))
+        .attr('cx', 0)
+        .attr('cy', 20)
+        .attr('r', 5)
+    }
+
     renderXAxis (g) {
         super.renderXAxis(g);
 
-        if (this._lowestYMin < 0) {
+        if (this._centerXAxis) {
             const axisXG = g.select('g.x');
 
             transition(axisXG, this.transitionDuration(), this.transitionDelay())
@@ -91,51 +92,76 @@ export class CompositeMultiAxisChart extends CompositeChart {
         this._rightYAxisChildren().forEach((child, index) => {
             this._createRightYAxis(child, index);
         });
+
+        this._children.forEach(child => {
+            this._updateMarkerXPos(child)
+        });
     }
 
-    _updateBarIdentifierXPos (groupName, yAxisOffset) {
-        const yName = groupName.split(' ').join('').toLowerCase();
+    _updateMarkerXPos (child) {
+        let markerGroup = {};
 
-        this.svg()
-        .select(`#${yName}-identifier`)
-        .attr('cx', yAxisOffset);
+        // TODO: this typeof check is a code smell as it appears in more than one place
+        // refactor the way we handle domains that inherit from other domains to create the y axes
+        if (typeof child._domain !== 'string') {
+            markerGroup = this._markerPositions[child._groupName];
+        } else {
+            markerGroup = this._markerPositions[child._domain];
+        }
+
+        markerGroup.markers.forEach((marker, index) => {
+            const yName = marker.split(' ').join('').toLowerCase();
+            const offset = markerGroup.isRight ? markerGroup.axisPos + index * 12 : markerGroup.axisPos - index * 12;
+
+            this.svg()
+            .select(`#${yName}-marker`)
+            .attr('cx', offset);
+        });
     }
 
     _createLeftYAxis (child, index) {
         if (typeof child._domain !== 'string') {
-            const yOffset = this.margins().left - index * (this.margins().left / this._leftYAxisChildren().length);
+            const yLeftPos = this.margins().left - index * (this.margins().left / this._leftYAxisChildren().length);
 
-            this._updateBarIdentifierXPos(child._groupName, yOffset - 3);
-            this._barIdentifierPositions[child._groupName] = yOffset - 3;
+            this._markerPositions[child._groupName] = {
+                axisPos: yLeftPos,
+                isRight: false,
+                markers: [child._groupName]
+            }
 
             this.renderYAxisAt(
                 `y${index}`,
                 this.yAxis().scale(this._customRanges[child._groupName].y),
-                yOffset
-                );
+                yLeftPos
+            );
 
-                this.renderYAxisLabel(`y${index}`, this.yAxisLabel(), -90);
-        } else {
-            this._updateBarIdentifierXPos(child._groupName, this._barIdentifierPositions[child._domain] - 15)
+            this.renderYAxisLabel(`y${index}`, this.yAxisLabel(), -90);
+        }
+        else {
+            this._markerPositions[child._domain].markers.push(child._groupName);
         }
     }
 
     _createRightYAxis (child, index) {
         if (typeof child._domain !== 'string') {
-            const yrOffset = this.width() - this.margins().right + index * (this.margins().right / this._rightYAxisChildren().length);
+            const yRightPos = this.width() - this.margins().right + index * (this.margins().right / this._rightYAxisChildren().length);
 
-            this._updateBarIdentifierXPos(child._groupName, yrOffset);
-            this._barIdentifierPositions[child._groupName] = yrOffset;
+            this._markerPositions[child._groupName] = {
+                axisPos: yRightPos,
+                isRight: true,
+                markers: [child._groupName]
+            }
 
             this.renderYAxisAt(
                 `yr${index}`,
                 this.rightYAxis().scale(this._customRanges[child._groupName].y),
-                yrOffset
+                yRightPos
             );
 
             this.renderYAxisLabel(`yr${index}`, this.rightYAxisLabel(), 90, this.width() - this._rightYAxisLabelPadding);
-        } else {
-            this._updateBarIdentifierXPos(child._groupName, this._barIdentifierPositions[child._domain] + 15)
+        }
+        else {
+            this._markerPositions[child._domain].markers.push(child._groupName);
         }
     }
 }

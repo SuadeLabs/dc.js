@@ -10,13 +10,17 @@ module.exports = function (grunt) {
 
     const formatFileList = require('./grunt/format-file-list')(grunt);
 
+    const pkgFile =  require('./package.json');
+    const pkgName = pkgFile.name.split('/')[1];
+
     const config = {
         src: 'src',
         spec: 'spec',
         web: 'web',
         websrc: 'web-src',
         dist: 'dist',
-        pkg: require('./package.json'),
+        pkg: pkgFile,
+        pkgName: pkgName || pkgFile.name,
         banner: grunt.file.read('./LICENSE_BANNER')
     };
 
@@ -36,7 +40,7 @@ module.exports = function (grunt) {
             },
             dist: {
                 files: {
-                    '<%= conf.dist %>/style/<%= conf.pkg.name %>.css': 'style/<%= conf.pkg.name %>.scss'
+                    '<%= conf.dist %>/style/<%= conf.pkgName %>.css': 'style/<%= conf.pkgName %>.scss'
                 }
             }
         },
@@ -47,7 +51,7 @@ module.exports = function (grunt) {
             },
             main: {
                 files: {
-                    '<%= conf.dist %>/style/<%= conf.pkg.name %>.min.css': ['<%= conf.dist %>/style/<%= conf.pkg.name %>.css']
+                    '<%= conf.dist %>/style/<%= conf.pkgName %>.min.css': ['<%= conf.dist %>/style/<%= conf.pkgName %>.css']
                 }
             }
         },
@@ -65,7 +69,7 @@ module.exports = function (grunt) {
                 tasks: ['docs']
             },
             sass: {
-                files: ['style/<%= conf.pkg.name %>.scss'],
+                files: ['style/<%= conf.pkgName %>.scss'],
                 tasks: ['sass', 'cssmin:main', 'copy:dc-to-gh']
             },
             tests: {
@@ -78,11 +82,11 @@ module.exports = function (grunt) {
                 tasks: ['test']
             },
             reload: {
-                files: ['<%= conf.dist %>/<%= conf.pkg.name %>.js',
-                        '<%= conf.dist %>/style/<%= conf.pkg.name %>.css',
-                        '<%= conf.web %>/js/<%= conf.pkg.name %>.js',
-                        '<%= conf.web %>/css/<%= conf.pkg.name %>.css',
-                        '<%= conf.dist %>/<%= conf.pkg.name %>.min.js'],
+                files: ['<%= conf.dist %>/<%= conf.pkgName %>.js',
+                        '<%= conf.dist %>/style/<%= conf.pkgName %>.css',
+                        '<%= conf.web %>/js/<%= conf.pkgName %>.js',
+                        '<%= conf.web %>/css/<%= conf.pkgName %>.css',
+                        '<%= conf.dist %>/<%= conf.pkgName %>.min.js'],
                 options: {
                     livereload: true
                 }
@@ -113,7 +117,7 @@ module.exports = function (grunt) {
                     keepRunner: true
                 },
                 src: [
-                    '<%= conf.dist %>/<%= conf.pkg.name %>.js'
+                    '<%= conf.dist %>/<%= conf.pkgName %>.js'
                 ]
             }
         },
@@ -129,7 +133,7 @@ module.exports = function (grunt) {
                     // source files, that you wanna generate coverage for
                     // do not include tests or libraries
                     // (these files will be instrumented by Istanbul)
-                    '<%= conf.dist %>/<%= conf.pkg.name %>.js': ['coverage']
+                    '<%= conf.dist %>/<%= conf.pkgName %>.js': ['coverage']
                 },
 
                 // optionally, configure the reporter
@@ -166,24 +170,25 @@ module.exports = function (grunt) {
         },
         jsdoc2md: {
             dist: {
-                src: '<%= conf.dist %>/<%= conf.pkg.name %>.js',
+                src: '<%= conf.dist %>/<%= conf.pkgName %>.js',
                 dest: 'docs/api-latest.md'
             }
         },
-        docco: {
-            options: {
-                dst: '<%= conf.web %>/docs'
-            },
-            howto: {
-                files: [
-                    {
-                        expand: true,
-                        cwd: '<%= conf.web %>',
-                        src: ['stock.js']
-                    }
-                ]
-            }
-        },
+        // grunt-docco2 is deprecated https://www.npmjs.com/package/grunt-docco2 either fork and fix issues or look for new plugin
+        // docco: {
+        //     options: {
+        //         dst: '<%= conf.web %>/docs'
+        //     },
+        //     howto: {
+        //         files: [
+        //             {
+        //                 expand: true,
+        //                 cwd: '<%= conf.web %>',
+        //                 src: ['stock.js']
+        //             }
+        //         ]
+        //     }
+        // },
         copy: {
             'dc-to-gh': {
                 files: [
@@ -204,7 +209,7 @@ module.exports = function (grunt) {
                         expand: true,
                         flatten: true,
                         nonull: true,
-                        src: ['<%= conf.dist %>/style/<%= conf.pkg.name %>.css', '<%= conf.dist %>/style/<%= conf.pkg.name %>.min.css'],
+                        src: ['<%= conf.dist %>/style/<%= conf.pkgName %>.css', '<%= conf.dist %>/style/<%= conf.pkgName %>.min.css'],
                         dest: '<%= conf.web %>/css/'
                     },
                     {
@@ -212,10 +217,10 @@ module.exports = function (grunt) {
                         flatten: true,
                         nonull: true,
                         src: [
-                            '<%= conf.dist %>/<%= conf.pkg.name %>.js',
-                            '<%= conf.dist %>/<%= conf.pkg.name %>.js.map',
-                            '<%= conf.dist %>/<%= conf.pkg.name %>.min.js',
-                            '<%= conf.dist %>/<%= conf.pkg.name %>.min.js.map',
+                            '<%= conf.dist %>/<%= conf.pkgName %>.js',
+                            '<%= conf.dist %>/<%= conf.pkgName %>.js.map',
+                            '<%= conf.dist %>/<%= conf.pkgName %>.min.js',
+                            '<%= conf.dist %>/<%= conf.pkgName %>.min.js.map',
                             `node_modules/d3/${d3pkgSubDir}/d3.js`,
                             'node_modules/crossfilter2/crossfilter.js',
                             'node_modules/file-saver/FileSaver.js',
@@ -393,7 +398,9 @@ module.exports = function (grunt) {
 
     // task aliases
     grunt.registerTask('build', ['shell:dist-clean', 'shell:rollup', 'sass', 'cssmin']);
-    grunt.registerTask('docs', ['build', 'copy', 'jsdoc', 'jsdoc2md', 'docco', 'fileindex']);
+    // grunt-docco2 is deprecated https://www.npmjs.com/package/grunt-docco2 either fork and fix issues or look for new plugin
+    // grunt.registerTask('docs', ['build', 'copy', 'jsdoc', 'jsdoc2md', 'docco', 'fileindex']);
+    grunt.registerTask('docs', ['build', 'copy', 'jsdoc', 'jsdoc2md', 'fileindex']);
     grunt.registerTask('web', ['docs', 'gh-pages']);
     grunt.registerTask('server-only', ['docs', 'fileindex', 'jasmine:specs:build', 'connect:server']);
     grunt.registerTask('server', ['server-only', 'watch:scripts-sass-docs']);
