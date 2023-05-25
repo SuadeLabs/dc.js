@@ -27,11 +27,26 @@ export class CompositeMultiAxisChart extends CompositeChart {
                 this.rightY(child._useCustomYRange.rangeRound([this.yAxisHeight(), 0]));
 
                 this._customRanges[child._groupName].y = this.rightY();
-            } else {this.y(child._useCustomYRange.rangeRound([this.yAxisHeight(), 0]));
+
+                this._addMarker(child, true);
+            } else {
+                this.y(child._useCustomYRange.rangeRound([this.yAxisHeight(), 0]));
 
                 this._customRanges[child._groupName].y = this.y();
+
+                this._addMarker(child, false);
             }
         })
+    }
+
+    _addMarker (child, isRight) {
+        if (typeof child._domain !== 'string') {
+            this._markerPositions[child._groupName] = {
+                axisPos: 0,
+                isRight: isRight,
+                markers: [child._groupName]
+            }
+        }
     }
 
     plotData () {
@@ -94,7 +109,7 @@ export class CompositeMultiAxisChart extends CompositeChart {
         });
 
         this._children.forEach(child => {
-            this._updateMarkerXPos(child)
+            this._updateMarkerXPos(child);
         });
     }
 
@@ -123,11 +138,7 @@ export class CompositeMultiAxisChart extends CompositeChart {
         if (typeof child._domain !== 'string') {
             const yLeftPos = this.margins().left - index * (this.margins().left / this._leftYAxisChildren().length);
 
-            this._markerPositions[child._groupName] = {
-                axisPos: yLeftPos,
-                isRight: false,
-                markers: [child._groupName]
-            }
+            this._markerPositions[child._groupName].axisPos = yLeftPos;
 
             this.renderYAxisAt(
                 `y${index}`,
@@ -146,11 +157,7 @@ export class CompositeMultiAxisChart extends CompositeChart {
         if (typeof child._domain !== 'string') {
             const yRightPos = this.width() - this.margins().right + index * (this.margins().right / this._rightYAxisChildren().length);
 
-            this._markerPositions[child._groupName] = {
-                axisPos: yRightPos,
-                isRight: true,
-                markers: [child._groupName]
-            }
+            this._markerPositions[child._groupName].axisPos = yRightPos;
 
             this.renderYAxisAt(
                 `yr${index}`,
