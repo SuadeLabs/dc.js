@@ -36,7 +36,13 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
                 this._addMarker(child, false);
             }
-        })
+        });
+
+        if (this._leftYAxisChildren().length > 0 && !this._rightAxisGridLines) {
+            this._renderHorizontalGridLinesForAxis(this.g(), this.y(), this.yAxis());
+        } else if (this._rightYAxisChildren().length > 0) {
+            this._renderHorizontalGridLinesForAxis(this.g(), this._rightY, this._rightYAxis);
+        }
     }
 
     _addMarker (child, isRight) {
@@ -136,7 +142,8 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
     _createLeftYAxis (child, index) {
         if (typeof child._domain !== 'string') {
-            const yLeftPos = this.margins().left - index * (this.margins().left / this._leftYAxisChildren().length);
+            // TODO make magic numbers in this calc configurable - maybe set a max num of axes?
+            const yLeftPos = this.margins().left - index * (this.margins().left / 6 + 6);
 
             this._markerPositions[child._groupName].axisPos = yLeftPos;
 
@@ -155,7 +162,8 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
     _createRightYAxis (child, index) {
         if (typeof child._domain !== 'string') {
-            const yRightPos = this.width() - this.margins().right + index * (this.margins().right / this._rightYAxisChildren().length);
+            // TODO make magic numbers in this calc configurable - maybe set a max num of axes?
+            const yRightPos = this.width() - this.margins().right + index * (this.margins().right / 6 + 6);
 
             this._markerPositions[child._groupName].axisPos = yRightPos;
 

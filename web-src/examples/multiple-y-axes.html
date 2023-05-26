@@ -76,19 +76,26 @@
 
     <script type="module">
         import * as ChartData from './multi-y-axis-data.js';
-        import RangePerAxis from './multi-y-axis-range-calc.js';
 
         const chartData = ChartData.default.chartData;
         const values = ChartData.default.values;
 
         const DEFAULT_OPTIONS = {
             transitionDuration: 500,
-            colours: ['#1f78b480', '#e31a1c80', '#33a02c80', '#ff7f0080', '#6a3d9a80', '#b1592880', '#a6cee380', '#b2df8a80', '#fb9a9980', '#fdbf6f80', '#cab2d680', '#ffff9980', '#1f78b480', '#e31a1c80', '#33a02c80', '#ff7f0080', '#6a3d9a80', '#b1592880', '#a6cee380', '#b2df8a80', '#fb9a9980', '#fdbf6f80', '#cab2d680', '#ffff9980'],
-            title: 'Title',
-            legend: undefined,
-            resetLink: undefined,
-            horizontalGridLines: false,
-            verticalGridLines: false,
+            colours: [
+                '#1f78b480',
+                '#e31a1c80',
+                '#33a02c80',
+                '#ff7f0080',
+                '#6a3d9a80',
+                '#b1592880',
+                '#a6cee380',
+                '#b2df8a80',
+                '#fb9a9980',
+                '#fdbf6f80',
+                '#cab2d680',
+                '#ffff9980'
+            ],
         };
 
         let chart;
@@ -157,13 +164,10 @@
                 domain = [-yMax, yMax];
             }
 
-            // Will overlap if more than 10 ticks, using 8 to be safe - increase height of chart if more needed
-            const ticksCount = chartData.yAxis.ticksCount === undefined || chartData.yAxis.ticksCount >= 8 ? 8 : chartData.yAxis.ticksCount;
-
             return {
                 y: d3.scaleLinear().domain(domain),
                 yUnits: dc.units.integers,
-                ticks: {count: ticksCount},
+                ticks: {count: 8},
             };
         }
 
@@ -198,18 +202,10 @@
                 ._rangeBandPadding(1) // fix for - https://github.com/dc-js/dc.js/issues/1827#issuecomment-827083074
                 .margins({top: 40, left: 200, right: 200, bottom: 60})
                 .renderHorizontalGridLines(true)
-                .renderVerticalGridLines(DEFAULT_OPTIONS.verticalGridLines);
+                .renderVerticalGridLines(false);
 
-            const legendPadding = chart.margins().left;
-            const legendItemWidth = dc.legend().itemWidth();
 
-            chart.legend(
-                dc.legend()
-                    .x(-legendItemWidth)
-                    .y(10)
-                    .itemHeight(13)
-                    .gap(5)
-            );
+            addLegend(chart);
 
             // Some SVG modifications need to be done on each render. Namespace listener with .svg
             chart.on('pretransition.svg', (chart) => {
@@ -224,12 +220,20 @@
             chart.render();
         }
 
-        function handleUpdatesAfterRender(chart) {
-            // update legend position in relation to the main svg
-            const legendPadding = chart.margins().left;
-            const legendItemWidthANDPadding = dc.legend().itemWidth() + legendPadding;
+        function addLegend(chart) {
+            const legendWidthWithRightPadding = dc.legend().itemWidth() + 15;
 
-            d3.select('svg').attr('viewBox', `-${legendItemWidthANDPadding} 0 ${chart.width() + legendItemWidthANDPadding} ${chart.height()}`)
+            chart.legend(
+                dc.legend()
+                    .x(-legendWidthWithRightPadding)
+                    .y(10)
+                    .itemHeight(13)
+                    .gap(5)
+            );
+        }
+
+        function handleUpdatesAfterRender(chart) {
+            updateSvgViewBox();
 
             // When compositing multiple bar charts, we need to shrink the width of the bars and pad them into groups
             if (values.filter((chartData) => (chartData.type === 'bar')).length > 1) {
@@ -249,6 +253,13 @@
                         .attr('clip-path', `polygon(${startAt}% 0, ${endAt}% 0, ${endAt}% 100%, ${startAt}% 100%)`);
                 });
             }
+        }
+
+        function updateSvgViewBox() {
+            const legendWidthWithRightPadding = dc.legend().itemWidth() + 15;
+            const viewBoxParams = `-${legendWidthWithRightPadding + 5} 0 ${chart.width() + legendWidthWithRightPadding} ${chart.height()}`;
+
+            d3.select('svg').attr('viewBox', viewBoxParams);
         }
 
         // Derive dimensions, groups, binning and ranges from the crossfilter containg a chart data series
