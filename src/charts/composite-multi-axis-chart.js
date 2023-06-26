@@ -34,7 +34,7 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
                 this._customRanges[child._groupName].y = this.y();
 
-                this._addMarker(child, false);
+                this._addMarker(child, false)
             }
         });
 
@@ -46,7 +46,7 @@ export class CompositeMultiAxisChart extends CompositeChart {
     }
 
     _addMarker (child, isRight) {
-        if (typeof child._domain !== 'string') {
+        if (this._useAxisMarkers && typeof child._domain !== 'string') {
             this._markerPositions[child._groupName] = {
                 axisPos: 0,
                 isRight: isRight,
@@ -120,32 +120,36 @@ export class CompositeMultiAxisChart extends CompositeChart {
     }
 
     _updateMarkerXPos (child) {
-        let markerGroup = {};
+        if (this._useAxisMarkers) {
+            let markerGroup = {};
 
-        // TODO: this typeof check is a code smell as it appears in more than one place
-        // refactor the way we handle domains that inherit from other domains to create the y axes
-        if (typeof child._domain !== 'string') {
-            markerGroup = this._markerPositions[child._groupName];
-        } else {
-            markerGroup = this._markerPositions[child._domain];
+            // TODO: this typeof check is a code smell as it appears in more than one place
+            // refactor the way we handle domains that inherit from other domains to create the y axes
+            if (typeof child._domain !== 'string') {
+                markerGroup = this._markerPositions[child._groupName];
+            } else {
+                markerGroup = this._markerPositions[child._domain];
+            }
+
+            markerGroup.markers.forEach((marker, index) => {
+                const yName = marker.split(' ').join('').toLowerCase();
+                const offset = markerGroup.isRight ? markerGroup.axisPos + index * 12 : markerGroup.axisPos - index * 12;
+
+                this.svg()
+                .select(`#${yName}-marker`)
+                .attr('cx', offset);
+            });
         }
-
-        markerGroup.markers.forEach((marker, index) => {
-            const yName = marker.split(' ').join('').toLowerCase();
-            const offset = markerGroup.isRight ? markerGroup.axisPos + index * 12 : markerGroup.axisPos - index * 12;
-
-            this.svg()
-            .select(`#${yName}-marker`)
-            .attr('cx', offset);
-        });
     }
 
     _createLeftYAxis (child, index) {
         if (typeof child._domain !== 'string') {
             // TODO make magic numbers in this calc configurable - maybe set a max num of axes?
-            const yLeftPos = this.margins().left - index * (this.margins().left / 6 + 6);
+            const yLeftPos = this.margins().left - index * (this.margins().left / this._maxAxes + this._maxAxes);
 
-            this._markerPositions[child._groupName].axisPos = yLeftPos;
+            if (this._markerPositions[child._groupName]) {
+                this._markerPositions[child._groupName].axisPos = yLeftPos;
+            }
 
             this.renderYAxisAt(
                 `y${index}`,
@@ -155,7 +159,7 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
             this.renderYAxisLabel(`y${index}`, this.yAxisLabel(), -90);
         }
-        else {
+        else if(this._markerPositions[child._domain]) {
             this._markerPositions[child._domain].markers.push(child._groupName);
         }
     }
@@ -163,9 +167,11 @@ export class CompositeMultiAxisChart extends CompositeChart {
     _createRightYAxis (child, index) {
         if (typeof child._domain !== 'string') {
             // TODO make magic numbers in this calc configurable - maybe set a max num of axes?
-            const yRightPos = this.width() - this.margins().right + index * (this.margins().right / 6 + 6);
+            const yRightPos = this.width() - this.margins().right + index * (this.margins().right / this._maxAxes + this._maxAxes);
 
-            this._markerPositions[child._groupName].axisPos = yRightPos;
+            if (this._markerPositions[child._groupName]) {
+                this._markerPositions[child._groupName].axisPos = yRightPos;
+            }
 
             this.renderYAxisAt(
                 `yr${index}`,
@@ -175,7 +181,7 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
             this.renderYAxisLabel(`yr${index}`, this.rightYAxisLabel(), 90, this.width() - this._rightYAxisLabelPadding);
         }
-        else {
+        else if(this._markerPositions[child._domain]) {
             this._markerPositions[child._domain].markers.push(child._groupName);
         }
     }

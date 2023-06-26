@@ -96,6 +96,8 @@ export class CoordinateGridMixin extends ColorMixin(MarginMixin) {
         this._useTopXAxis = false;
 
         this._useCustomYRange = undefined;
+        this._useAxisMarkers = true;
+        this._maxAxes = 6;
         this._domain = undefined;
     }
 
@@ -437,23 +439,39 @@ export class CoordinateGridMixin extends ColorMixin(MarginMixin) {
     }
 
     /**
-     * Allows a set of custom ranges to be passed in to create more than one y axis for the data
-     * supplied by a crossfilter.
+     * Allows a set of Y domains to be passed in to create more than one y axis for the data
+     * supplied by a crossfilter.  The maximum number of Y Axes can be set using the optional
+     * maxAxes argument.  It will default to 6, 3 on the left and 3 on the right.
      * @param {Function} [useCustomYRange=()=>{}]
      * @param {String|Array} [domain]
+     * @param {Number} [maxAxes=6]
      * @returns {Function}
      */
-    useCustomYRange (useCustomYRange, domain) {
+    useCustomYRange (useCustomYRange, domain, maxAxes=6) {
         if (!arguments.length) {
             return this._useCustomYRange;
         }
 
         this._useCustomYRange = useCustomYRange;
         this._domain = domain;
+        this._maxAxes = maxAxes;
 
         return this;
     }
+    /**
+     * Gets or sets whether the chart should be drawn with markers above the Y axes to identify
+     * which axis the data on the chart represents. On by default.
+     * @param {Boolean} [useAxisMarkers=true]
+     * @returns {Boolean|CoordinateGridMixin}
+     */
+    useAxisMarkers (useAxisMarkers=true) {
+        if (!arguments.length) {
+            return this._useAxisMarkers;
+        }
 
+        this._useAxisMarkers = useAxisMarkers;
+        return this;
+    }
     /**
      * Gets or sets whether the chart should be drawn with a top axis instead of a bottom axis. When
      * used with a chart in a composite chart, allows both top and bottom X axes to be shown on a

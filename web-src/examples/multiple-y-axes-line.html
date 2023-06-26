@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>dc.js - Align Y Axes on line chart Example</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="../css/dc.css" />
+    <style>
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+        }
+
+        #content {
+            text-align: center;
+        }
+
+        code {
+            color: black;
+        }
+
+        #page {
+            height: 95vh;
+            width: 100%;
+        }
+
+        .chart-holder {
+            padding: 0 1em;
+        }
+
+        path.left {
+            stroke: #1f77b4;
+        }
+
+        path.right {
+            stroke: #ff7f0e;
+        }
+
+        path.horizontal {
+            stroke-width: 1;
+            stroke-opacity: 0.5;
+        }
+
+        path.zero {
+            stroke-dasharray: 4, 4;
+        }
+
+        path.zero.right {
+            stroke-dashoffset: 4;
+        }
+
+        path.extreme {
+            stroke-dasharray: 1, 1;
+        }
+
+        path.extreme.right {
+            stroke-dashoffset: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <script type="text/javascript" src="../js/d3.js"></script>
+    <script type="text/javascript" src="../js/crossfilter.js"></script>
+    <script type="text/javascript" src="../js/dc.js"></script>
+    <div class="container">
+        <script type="text/javascript" src="./header.js"></script>
+
+        <p>Multiple y-axis test page</p>
+    </div>
+    <div id="hscroll">
+        <div id="content"></div>
+    </div>
+
+    <script type="module">
+        import * as ChartData from './multi-y-axis-data.js';
+
+        // const values = ChartData.default.dataBars.values;
+        const values = ChartData.default.dataLines.values;
+
+        const millis_per_second = 1000;
+        const millis_per_minute = (millis_per_second * 60);
+        const millis_per_hour = (millis_per_minute * 60);
+        const millis_per_day = (millis_per_hour * 24);
+        const millis_per_week = (millis_per_day * 7);
+        const millis_per_month_approx = (millis_per_day * 28);
+        const millis_per_year = (millis_per_day * 365);
+
+
+        const time_bar_width = {
+            'second': new Date(millis_per_second),
+            'minute': new Date(millis_per_minute),
+            'hour': new Date(millis_per_hour),
+            'day': new Date(millis_per_day),
+            'week': new Date(millis_per_week),
+            'month': new Date(millis_per_month_approx),
+            'year': new Date(millis_per_year),
+        };
+
+        const time_x_units = {
+            'second': d3.timeSeconds,
+            'minute': d3.timeMinutes,
+            'hour': d3.timeHours,
+            'day': d3.timeDays,
+            'week': d3.timeWeeks,
+            'month': d3.timeMonths,
+            'year': d3.timeYears,
+        };
+
+        const DEFAULT_OPTIONS = {
+            transitionDuration: 500,
+            colours: [
+                '#1f78b480',
+                '#e31a1c80',
+                '#33a02c80',
+                '#ff7f0080',
+                '#6a3d9a80',
+                '#b1592880',
+                '#a6cee380',
+                '#b2df8a80',
+                '#fb9a9980',
+                '#fdbf6f80',
+                '#cab2d680',
+                '#ffff9980'
+            ],
+        };
+
+        let chart;
+        let crossFilters = [];
+        let processedData = [];
+        let yDomains = {};
+        let lowestYMin = 0;
+
+        function composeChart(anchor) {
+
+            const compChart = dc.compositeMultiAxisChart(anchor);
+            const singleCharts = [];
+
+            const barsLength = values.filter((chartData) => (chartData.type === 'bar')).length;
+
+            let useRight = true;
+            values.forEach((chartData, index) => {
+                // TODO: check to see if we have multiple axes then alternate between left and right;
+                useRight = !useRight;
+                singleCharts.push(buildChart(chartData, compChart, true, index, barsLength, useRight));
+            });
+
+            return compChart.compose(singleCharts);
+        };
+
+        // Builds a chart using its type and data, setting type specific parameters
+        function buildChart(chartData, root, comp = false, index = 0, barsLength, useRight = false) {
+            const {dimension, group} = processedData[index];
+            let chartToUse;
+            let colours = DEFAULT_OPTIONS.colours;
+
+            if (barsLength > 1 && colours.length > index) {
+                colours = colours.slice(index, index + 1);
+            }
+
+            const y = createYAxis(chartData, index);
+
+            // chartToUse = dc.barChart(root)
+            //     .gap(1) // fix for - https://github.com/dc-js/dc.js/issues/1827#issuecomment-827083074
+            //     .dimension(dimension)
+            //     .group(group, chartData.name || '' + index)
+            //     .centerBar(true)
+            //     .colorAccessor((d) => d.key)
+            //     .ordinalColors(colours)
+            //     .useCustomYRange(y.y, chartData.yAxis.useRange)
+            //     .useRightYAxis(useRight);
+
+            console.log('buildChart chartData.yAxis.useRange', chartData.yAxis.useRange);
+            console.log('buildChart y domain', y.y.domain());
+
+            chartToUse = dc.lineChart(root)
+                .dimension(dimension)
+                .group(group, chartData.name || '' + index)
+                .colors(DEFAULT_OPTIONS.colours[index])
+                .useRightYAxis(chartData.yAxis.right || useRight)
+                // TODO: investigate - do we need to pass in useRange here?
+                .useCustomYRange(y.y, chartData.yAxis.useRange);
+
+            return chartToUse;
+        };
+
+        function createYAxis(chartData, index) {
+            const {group} = processedData[index];
+            const type = chartData.yAxis.type;
+            const ticksCount = 8;
+
+            let domainRange = yDomains[chartData.name];
+
+            if (typeof chartData.yAxis.useRange === 'string' && yDomains[chartData.yAxis.useRange] !== undefined) {
+                domainRange = yDomains[chartData.yAxis.useRange];
+            }
+
+            let domain = [0, domainRange[1]]
+
+            if (lowestYMin < 0) {
+                const yMax = Math.max(...[Math.abs(domainRange[0]), Math.abs(domainRange[1])])
+
+                // Need to use yMax value to align 0 across all axes when there are negative values
+                domain = [-yMax, yMax];
+            }
+
+
+            if (type === 'linear') {
+                const yScale = d3.scaleLinear().domain(domain);
+                return {
+                    y: yScale,
+                    yUnits: dc.units.integers,
+                    ticks: {count: ticksCount},
+                };
+            } else if (type === 'percentage') {
+                return {
+                    y: d3.scaleLinear().domain([0, 1]),
+                    yUnits: dc.units.integers,
+                    ticks: {format: '%', count: ticksCount},
+                };
+            } else if (type === 'scaled-percentage') {
+                return {
+                    y: d3.scaleLinear().domain([0, domain[1]]).range([0, 100]),
+                    yUnits: dc.units.integers,
+                    ticks: {format: '%', count: ticksCount},
+                };
+            }
+            return {
+                y: d3.scaleLinear().domain(domain),
+                yUnits: dc.units.integers,
+                ticks: {count: 8},
+            };
+        }
+
+        // Generate the required information for the X axis of a chart
+        function createXAxis(chartData, index) {
+            const type = chartData.xAxis.type;
+            let {group, binWidth, max, min} = processedData[index];
+
+            if (type === 'label') {
+                return {
+                    x: d3.scaleBand().domain(group.all().map((v) => v.key)),
+                    xUnits: dc.units.ordinal,
+                };
+
+            } else if (type === 'time') {
+                let xUnits;
+
+                if (typeof binWidth === 'string') {
+                    xUnits = time_x_units[binWidth];
+                    binWidth = time_bar_width[binWidth];
+                } else {
+                    xUnits = chartData.type == 'bar' ? () => ((max - min) / binWidth) : dc.units.integers;
+                }
+
+                // Bar charts need one extra step on the x axis as the bar extends from n to n + 1
+                if (chartData.type === 'bar') {
+                    max = new Date(max.getTime() + binWidth.getTime());
+                }
+
+                return {
+                    x: d3.scaleTime().domain([min, max]),
+                    xUnits: xUnits,
+                };
+            }
+        }
+
+        // Render the chart for this component,
+        function renderChart() {
+            const container = d3.select('#content')
+
+            chart = composeChart(container);
+            // chart.yAxis().ticks(8, d3.format('~s'));
+            // chart.rightYAxis().ticks(8, d3.format('~s'));
+
+            const xAxis = createXAxis(values[0], 0);
+            const chartWidth = container.node().getBoundingClientRect().width;
+
+            chart
+                .width(chartWidth)
+                .transitionDuration(DEFAULT_OPTIONS.transitionDuration)
+                .x(xAxis.x)
+                .xUnits(xAxis.xUnits)
+                .yAxisLabel(values[0].yAxis.label)
+                // .useAxisMarkers(false)
+                .brushOn(false)
+                ._rangeBandPadding(1) // fix for - https://github.com/dc-js/dc.js/issues/1827#issuecomment-827083074
+                .margins({top: 40, left: 200, right: 200, bottom: 60})
+                .renderHorizontalGridLines(true)
+                .renderVerticalGridLines(false);
+
+            // addLegend(chart);
+
+            // Some SVG modifications need to be done on each render. Namespace listener with .svg
+            // chart.on('pretransition.svg', (chart) => {
+            //     handleUpdatesAfterRender(chart);
+            // });
+
+            // create holes if value is NaN
+            if (chart.defined) {
+                chart.defined((d) => !isNaN(d.y));
+            }
+
+            chart.render();
+        }
+
+        // function addLegend(chart) {
+        //     const legendWidthWithRightPadding = dc.legend().itemWidth() + 15;
+
+        //     chart.legend(
+        //         dc.legend()
+        //             .x(-legendWidthWithRightPadding)
+        //             .y(10)
+        //             .itemHeight(13)
+        //             .gap(5)
+        //     );
+        // }
+
+        function handleUpdatesAfterRender(chart) {
+            // updateSvgViewBox();
+
+            // When compositing multiple bar charts, we need to shrink the width of the bars and pad them into groups
+            // if (values.filter((chartData) => (chartData.type === 'bar')).length > 1) {
+            //     const subs = chart.selectAll('.sub');
+            //     const barPadding = 3 / subs.size();
+            //     const subScale = d3.scaleLinear().domain([0, subs.size()]).range([0, 100]);
+
+            //     subs.each(function(d, i) {
+            //         let startAt = subScale(i + 1) - subScale(1);
+            //         let endAt = subScale(i + 1);
+
+            //         startAt += barPadding + (i === 0 ? barPadding * 5 : 0);
+            //         endAt -= (barPadding + (i === subs.size() - 1 ? barPadding * 5 : 0));
+
+            //         d3.select(this)
+            //             .selectAll('rect')
+            //             .attr('clip-path', `polygon(${startAt}% 0, ${endAt}% 0, ${endAt}% 100%, ${startAt}% 100%)`);
+            //     });
+            // }
+        }
+
+        // function updateSvgViewBox() {
+        //     const legendWidthWithRightPadding = dc.legend().itemWidth() + 15;
+        //     const viewBoxParams = `-${legendWidthWithRightPadding + 5} 0 ${chart.width() + legendWidthWithRightPadding} ${chart.height()}`;
+
+        //     d3.select('svg').attr('viewBox', viewBoxParams);
+        // }
+
+        // Derive dimensions, groups, binning and ranges from the crossfilter containg a chart data series
+        function processData(chartData, index) {
+            let dimension, group, binWidth, max, min;
+
+            const ndx = crossFilters[index];
+
+            if (chartData.xAxis.type === 'label') {
+                dimension = ndx.dimension((d) => d.key);
+                group = dimension.group().reduceSum((d) => d.value); // For data that is already grouped, use 'sum' of single value
+            } else if (chartData.xAxis.type === 'time') { // TIME
+                const xSeriesKey = chartData.xAxis.seriesKey;
+                const ySeriesKey = chartData.yAxis.seriesKey;
+
+                // Unfortunately crossfilter will lock up if the date is not valid, so needs to be checked
+                dimension = ndx.dimension((d) => {
+                    const date = new Date(d[xSeriesKey]);
+
+                    if (date instanceof Date && !isNaN(date)) {
+                        return date;
+                    } else {
+                        console.warn('Invalid date in chart data!', d[xSeriesKey]);
+                        return null;
+                    }
+                });
+
+                group = chartData.dataFormat === 'raw' ?
+                    dimension.group().reduceCount() :
+                    dimension.group().reduceSum((d) => d[ySeriesKey]);
+
+                let xAxisValues = group.all().map((v) => v.key);
+
+                max = d3.max(xAxisValues);
+                min = d3.min(xAxisValues);
+
+                binWidth = group.all().length <= 20 ? null : getTimeBinWidth(max - min);
+
+                // If there were less than 20 values we still need to know the width to use for the bar
+                if (binWidth == null) {
+                    binWidth = new Date(parseInt(getInterval(xAxisValues, true)));
+                }
+            }
+
+            return {dimension: dimension, group: group, binWidth: binWidth, max: max, min: min};
+        };
+
+        crossFilters.forEach((crossFilter) => {
+            if (crossFilter) {
+                crossFilter.remove();
+                crossFilter = undefined;
+            }
+        });
+
+        // Generate a cross filter from a series of chart data, depending on the data format
+        function createCrossFilter(chartData) {
+            if (chartData.dataFormat === 'key-value') {
+                return crossfilter(Object.keys(chartData.values[0]).map((key) => {
+                    const ret = {};
+
+                    ret['key'] = key;
+                    ret['value'] = chartData.values[0][key];
+
+                    return ret;
+                }));
+            } else {
+                return crossfilter(chartData.values);
+            }
+        };
+
+        processedData.splice(0, processedData.length);
+
+        values.forEach((chartDataValues, index) => {
+
+            yDomains[chartDataValues.name] = chartDataValues.yAxis.useRange
+
+            if (typeof chartDataValues.yAxis.useRange !== 'string') {
+                const min = Math.min(...chartDataValues.yAxis.useRange);
+
+                if (index === 0 || min < lowestYMin) {
+                    lowestYMin = min;
+                }
+            }
+
+            crossFilters[index] = createCrossFilter(chartDataValues);
+            processedData[index] = processData(chartDataValues, index);
+        });
+
+        renderChart();
+
+
+        // -----------------------------------------------------
+
+        // Calcaulte the more appropriate bin for a time axis, given a time range
+        function getTimeBinWidth(x) {
+            const diff = new Date(x);
+            const diffTime = diff.getTime();
+            const seconds = Math.ceil(diffTime / 1000);
+            const minutes = Math.ceil(seconds / 60);
+            const hours = Math.ceil(minutes / 60);
+            const days = Math.ceil(hours / 24);
+            const weeks = Math.ceil(days / 7);
+            const months = Math.ceil(days / 30);
+
+            if (seconds <= 20) {
+                return 'second';
+            } else if (minutes <= 20) {
+                return 'minute';
+            } else if (hours <= 20) {
+                return 'hour';
+            } else if (days <= 20) {
+                return 'day';
+            } else if (weeks <= 20) {
+                return 'week';
+            } else if (months <= 20) {
+                return 'month';
+            } else {
+                return 'year';
+            }
+        }
+
+        // Determine either the most common or smallest interval between a set of values
+        function getInterval(values, getSmallest = false) {
+            const intervals = {};
+
+            // Count up the incidences of each interval
+            for (let i = 1; i < values.length; i++) {
+                const interval = (values[i] - values[i - 1]).toFixed(2);
+
+                if (intervals[interval]) {
+                    intervals[interval].count++;
+                } else {
+                    intervals[interval] = {
+                        interval: interval,
+                        count: 1,
+                    };
+                }
+            }
+
+            if (getSmallest) {
+                let smallest = Infinity;
+
+                Object.keys(intervals).forEach((key) => {
+                    if (parseFloat(intervals[key].interval) < smallest) {
+                        smallest = parseFloat(intervals[key].interval);
+                    }
+                });
+
+                return smallest;
+            } else {
+                let ret; let max = 0;
+
+                // Select the most frequent
+                Object.keys(intervals).forEach((key) => {
+                    const interval = intervals[key].interval;
+                    const count = intervals[key].count;
+
+                    if (count > max) {
+                        max = count;
+                        ret = parseFloat(interval);
+                    }
+                });
+
+                return ret;
+            }
+        }
+    </script>
+</body>
+
+</html>
