@@ -96,7 +96,6 @@ export class CoordinateGridMixin extends ColorMixin(MarginMixin) {
         this._useTopXAxis = false;
 
         this._useCustomYRange = undefined;
-        this._useAxisMarkers = true;
         this._maxAxes = 6;
         this._domain = undefined;
     }
@@ -456,20 +455,6 @@ export class CoordinateGridMixin extends ColorMixin(MarginMixin) {
         this._domain = domain;
         this._maxAxes = maxAxes;
 
-        return this;
-    }
-    /**
-     * Gets or sets whether the chart should be drawn with markers above the Y axes to identify
-     * which axis the data on the chart represents. On by default.
-     * @param {Boolean} [useAxisMarkers=true]
-     * @returns {Boolean|CoordinateGridMixin}
-     */
-    useAxisMarkers (useAxisMarkers=true) {
-        if (!arguments.length) {
-            return this._useAxisMarkers;
-        }
-
-        this._useAxisMarkers = useAxisMarkers;
         return this;
     }
     /**

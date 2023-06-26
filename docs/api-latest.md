@@ -5416,7 +5416,6 @@ concrete chart types, e.g. bar chart, line chart, and bubble chart.
     * [.xUnitCount()](#CoordinateGridMixin+xUnitCount) ⇒ <code>Number</code>
     * [.useRightYAxis([useRightYAxis])](#CoordinateGridMixin+useRightYAxis) ⇒ <code>Boolean</code> \| [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)
     * [.useCustomYRange([useCustomYRange], [domain], [maxAxes])](#CoordinateGridMixin+useCustomYRange) ⇒ <code>function</code>
-    * [.useAxisMarkers([useAxisMarkers])](#CoordinateGridMixin+useAxisMarkers) ⇒ <code>Boolean</code> \| [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)
     * [.useTopXAxis([useTopXAxis])](#CoordinateGridMixin+useTopXAxis) ⇒ <code>Boolean</code> \| [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)
     * [.isOrdinal()](#CoordinateGridMixin+isOrdinal) ⇒ <code>Boolean</code>
     * [.xAxisLabel([labelText], [padding])](#CoordinateGridMixin+xAxisLabel) ⇒ <code>String</code>
@@ -5704,18 +5703,6 @@ maxAxes argument.  It will default to 6, 3 on the left and 3 on the right.
 | [useCustomYRange] | <code>function</code> | <code>()&#x3D;&gt;{}</code> | 
 | [domain] | <code>String</code> \| <code>Array</code> |  | 
 | [maxAxes] | <code>Number</code> | <code>6</code> | 
-
-<a name="CoordinateGridMixin+useAxisMarkers"></a>
-
-### coordinateGridMixin.useAxisMarkers([useAxisMarkers]) ⇒ <code>Boolean</code> \| [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)
-Gets or sets whether the chart should be drawn with markers above the Y axes to identify
-which axis the data on the chart represents. On by default.
-
-**Kind**: instance method of [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)  
-
-| Param | Type | Default |
-| --- | --- | --- |
-| [useAxisMarkers] | <code>Boolean</code> | <code>true</code> | 
 
 <a name="CoordinateGridMixin+useTopXAxis"></a>
 
