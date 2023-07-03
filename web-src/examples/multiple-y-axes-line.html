@@ -72,6 +72,8 @@
     </div>
     <div id="hscroll">
         <div id="content"></div>
+        <div id="selector" ref="anchorSelector">
+        </div>
     </div>
 
     <script type="module">
@@ -133,9 +135,16 @@
         let yDomains = {};
         let lowestYMin = 0;
 
-        function composeChart(anchor) {
+        function composeChart(anchor, isSelector = false) {
 
-            const compChart = dc.compositeMultiAxisChart(anchor);
+            let compChart;
+
+            if (isSelector) {
+                compChart = dc.compositeChart(anchor);
+            } else {
+                compChart = dc.compositeMultiAxisChart(anchor);
+            }
+
             const singleCharts = [];
 
             const barsLength = values.filter((chartData) => (chartData.type === 'bar')).length;
@@ -143,7 +152,9 @@
             let useRight = true;
             values.forEach((chartData, index) => {
                 // TODO: check to see if we have multiple axes then alternate between left and right;
-                useRight = !useRight;
+                if (!isSelector) {
+                    useRight = !useRight;
+                }
                 singleCharts.push(buildChart(chartData, compChart, true, index, barsLength, useRight));
             });
 
@@ -169,10 +180,10 @@
             //     .centerBar(true)
             //     .colorAccessor((d) => d.key)
             //     .ordinalColors(colours)
-            //     .useCustomYRange(y.y, chartData.yAxis.useRange)
+            //     .multiYAxisDomainData(y.y, chartData.yAxis.domain)
             //     .useRightYAxis(useRight);
 
-            console.log('buildChart chartData.yAxis.useRange', chartData.yAxis.useRange);
+            console.log('buildChart chartData.yAxis.domain', chartData.yAxis.domain);
             console.log('buildChart y domain', y.y.domain());
 
             chartToUse = dc.lineChart(root)
@@ -180,8 +191,7 @@
                 .group(group, chartData.name || '' + index)
                 .colors(DEFAULT_OPTIONS.colours[index])
                 .useRightYAxis(chartData.yAxis.right || useRight)
-                // TODO: investigate - do we need to pass in useRange here?
-                .useCustomYRange(y.y, chartData.yAxis.useRange);
+                .multiYAxisDomainData(y.y, chartData.yAxis.domain || []);
 
             return chartToUse;
         };
@@ -193,8 +203,8 @@
 
             let domainRange = yDomains[chartData.name];
 
-            if (typeof chartData.yAxis.useRange === 'string' && yDomains[chartData.yAxis.useRange] !== undefined) {
-                domainRange = yDomains[chartData.yAxis.useRange];
+            if (typeof chartData.yAxis.domain === 'string' && yDomains[chartData.yAxis.domain] !== undefined) {
+                domainRange = yDomains[chartData.yAxis.domain];
             }
 
             let domain = [0, domainRange[1]]
@@ -272,8 +282,6 @@
             const container = d3.select('#content')
 
             chart = composeChart(container);
-            // chart.yAxis().ticks(8, d3.format('~s'));
-            // chart.rightYAxis().ticks(8, d3.format('~s'));
 
             const xAxis = createXAxis(values[0], 0);
             const chartWidth = container.node().getBoundingClientRect().width;
@@ -284,19 +292,17 @@
                 .x(xAxis.x)
                 .xUnits(xAxis.xUnits)
                 .yAxisLabel(values[0].yAxis.label)
-                // .useAxisMarkers(false)
                 .brushOn(false)
-                ._rangeBandPadding(1) // fix for - https://github.com/dc-js/dc.js/issues/1827#issuecomment-827083074
                 .margins({top: 40, left: 200, right: 200, bottom: 60})
                 .renderHorizontalGridLines(true)
                 .renderVerticalGridLines(false);
 
-            // addLegend(chart);
+            addLegend(chart);
 
             // Some SVG modifications need to be done on each render. Namespace listener with .svg
-            // chart.on('pretransition.svg', (chart) => {
-            //     handleUpdatesAfterRender(chart);
-            // });
+            chart.on('pretransition.svg', (chart) => {
+                handleUpdatesAfterRender(chart);
+            });
 
             // create holes if value is NaN
             if (chart.defined) {
@@ -304,49 +310,77 @@
             }
 
             chart.render();
+
+            const selectorChart = renderSelectorChart();
+            chart.rangeChart(selectorChart);
+            selectorChart.render();
         }
 
-        // function addLegend(chart) {
-        //     const legendWidthWithRightPadding = dc.legend().itemWidth() + 15;
+        // Render the extra range selection chart below the main chart if necessary
+        function renderSelectorChart() {
+            const anchorSelector = d3.select('#selector')
 
-        //     chart.legend(
-        //         dc.legend()
-        //             .x(-legendWidthWithRightPadding)
-        //             .y(10)
-        //             .itemHeight(13)
-        //             .gap(5)
-        //     );
-        // }
+            // Time line selector
+            if (values[0].xAxis.selector) {
+                const selectorChart = composeChart(anchorSelector, true); // (this.values[0], this.$refs.anchorSelector);
+                const selectorAxis = createXAxis(values[0], 0);
+
+                // Can't chain rightYAxis off yAxis, so need apply ticks settings separately
+                selectorChart.rightYAxis().ticks(0, '');
+                selectorChart.yAxis().ticks(0, '');
+
+                return selectorChart
+                    .width(null)
+                    .height(125)
+                    .x(selectorAxis.x)
+                    .xUnits(selectorAxis.xUnits)
+                    .margins({top: 15, left: 200, right: 200, bottom: 50})
+                    .xAxisLabel(values[0].xAxis.label);
+            }
+
+        }
+
+        function addLegend(chart) {
+            const legendWidthWithRightPadding = dc.legend().itemWidth() + 15;
+
+            chart.legend(
+                dc.legend()
+                    .x(-legendWidthWithRightPadding)
+                    .y(10)
+                    .itemHeight(13)
+                    .gap(5)
+            );
+        }
 
         function handleUpdatesAfterRender(chart) {
-            // updateSvgViewBox();
+            updateSvgViewBox();
 
             // When compositing multiple bar charts, we need to shrink the width of the bars and pad them into groups
-            // if (values.filter((chartData) => (chartData.type === 'bar')).length > 1) {
-            //     const subs = chart.selectAll('.sub');
-            //     const barPadding = 3 / subs.size();
-            //     const subScale = d3.scaleLinear().domain([0, subs.size()]).range([0, 100]);
+            if (values.filter((chartData) => (chartData.type === 'bar')).length > 1) {
+                const subs = chart.selectAll('.sub');
+                const barPadding = 3 / subs.size();
+                const subScale = d3.scaleLinear().domain([0, subs.size()]).range([0, 100]);
 
-            //     subs.each(function(d, i) {
-            //         let startAt = subScale(i + 1) - subScale(1);
-            //         let endAt = subScale(i + 1);
+                subs.each(function(d, i) {
+                    let startAt = subScale(i + 1) - subScale(1);
+                    let endAt = subScale(i + 1);
 
-            //         startAt += barPadding + (i === 0 ? barPadding * 5 : 0);
-            //         endAt -= (barPadding + (i === subs.size() - 1 ? barPadding * 5 : 0));
+                    startAt += barPadding + (i === 0 ? barPadding * 5 : 0);
+                    endAt -= (barPadding + (i === subs.size() - 1 ? barPadding * 5 : 0));
 
-            //         d3.select(this)
-            //             .selectAll('rect')
-            //             .attr('clip-path', `polygon(${startAt}% 0, ${endAt}% 0, ${endAt}% 100%, ${startAt}% 100%)`);
-            //     });
-            // }
+                    d3.select(this)
+                        .selectAll('rect')
+                        .attr('clip-path', `polygon(${startAt}% 0, ${endAt}% 0, ${endAt}% 100%, ${startAt}% 100%)`);
+                });
+            }
         }
 
-        // function updateSvgViewBox() {
-        //     const legendWidthWithRightPadding = dc.legend().itemWidth() + 15;
-        //     const viewBoxParams = `-${legendWidthWithRightPadding + 5} 0 ${chart.width() + legendWidthWithRightPadding} ${chart.height()}`;
+        function updateSvgViewBox() {
+            const legendWidthWithRightPadding = dc.legend().itemWidth() + 15;
+            const viewBoxParams = `-${legendWidthWithRightPadding + 5} 0 ${chart.width() + legendWidthWithRightPadding} ${chart.height()}`;
 
-        //     d3.select('svg').attr('viewBox', viewBoxParams);
-        // }
+            d3.select('svg').attr('viewBox', viewBoxParams);
+        }
 
         // Derive dimensions, groups, binning and ranges from the crossfilter containg a chart data series
         function processData(chartData, index) {
@@ -420,10 +454,10 @@
 
         values.forEach((chartDataValues, index) => {
 
-            yDomains[chartDataValues.name] = chartDataValues.yAxis.useRange
+            yDomains[chartDataValues.name] = chartDataValues.yAxis.domain
 
-            if (typeof chartDataValues.yAxis.useRange !== 'string') {
-                const min = Math.min(...chartDataValues.yAxis.useRange);
+            if (typeof chartDataValues.yAxis.domain !== 'string') {
+                const min = Math.min(...chartDataValues.yAxis.domain);
 
                 if (index === 0 || min < lowestYMin) {
                     lowestYMin = min;

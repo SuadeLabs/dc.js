@@ -5415,7 +5415,7 @@ concrete chart types, e.g. bar chart, line chart, and bubble chart.
     * [.xAxisPaddingUnit([unit])](#CoordinateGridMixin+xAxisPaddingUnit) ⇒ <code>String</code> \| [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)
     * [.xUnitCount()](#CoordinateGridMixin+xUnitCount) ⇒ <code>Number</code>
     * [.useRightYAxis([useRightYAxis])](#CoordinateGridMixin+useRightYAxis) ⇒ <code>Boolean</code> \| [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)
-    * [.useCustomYRange([useCustomYRange], [domain], [maxAxes])](#CoordinateGridMixin+useCustomYRange) ⇒ <code>function</code>
+    * [.multiYAxisDomainData([yScale], [yDomain], [maxYAxes])](#CoordinateGridMixin+multiYAxisDomainData) ⇒ <code>function</code>
     * [.useTopXAxis([useTopXAxis])](#CoordinateGridMixin+useTopXAxis) ⇒ <code>Boolean</code> \| [<code>CoordinateGridMixin</code>](#CoordinateGridMixin)
     * [.isOrdinal()](#CoordinateGridMixin+isOrdinal) ⇒ <code>Boolean</code>
     * [.xAxisLabel([labelText], [padding])](#CoordinateGridMixin+xAxisLabel) ⇒ <code>String</code>
@@ -5689,9 +5689,9 @@ chart.
 | --- | --- | --- |
 | [useRightYAxis] | <code>Boolean</code> | <code>false</code> | 
 
-<a name="CoordinateGridMixin+useCustomYRange"></a>
+<a name="CoordinateGridMixin+multiYAxisDomainData"></a>
 
-### coordinateGridMixin.useCustomYRange([useCustomYRange], [domain], [maxAxes]) ⇒ <code>function</code>
+### coordinateGridMixin.multiYAxisDomainData([yScale], [yDomain], [maxYAxes]) ⇒ <code>function</code>
 Allows a set of Y domains to be passed in to create more than one y axis for the data
 supplied by a crossfilter.  The maximum number of Y Axes can be set using the optional
 maxAxes argument.  It will default to 6, 3 on the left and 3 on the right.
@@ -5700,9 +5700,9 @@ maxAxes argument.  It will default to 6, 3 on the left and 3 on the right.
 
 | Param | Type | Default |
 | --- | --- | --- |
-| [useCustomYRange] | <code>function</code> | <code>()&#x3D;&gt;{}</code> | 
-| [domain] | <code>String</code> \| <code>Array</code> |  | 
-| [maxAxes] | <code>Number</code> | <code>6</code> | 
+| [yScale] | <code>function</code> | <code>()&#x3D;&gt;{}</code> | 
+| [yDomain] | <code>String</code> \| <code>Array</code> |  | 
+| [maxYAxes] | <code>Number</code> | <code>6</code> | 
 
 <a name="CoordinateGridMixin+useTopXAxis"></a>
 

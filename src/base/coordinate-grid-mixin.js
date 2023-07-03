@@ -95,9 +95,9 @@ export class CoordinateGridMixin extends ColorMixin(MarginMixin) {
         this._useRightYAxis = false;
         this._useTopXAxis = false;
 
-        this._useCustomYRange = undefined;
-        this._maxAxes = 6;
-        this._domain = undefined;
+        this._yScale = undefined;
+        this._maxYAxes = 6;
+        this._yDomain = undefined;
     }
 
     /**
@@ -441,19 +441,19 @@ export class CoordinateGridMixin extends ColorMixin(MarginMixin) {
      * Allows a set of Y domains to be passed in to create more than one y axis for the data
      * supplied by a crossfilter.  The maximum number of Y Axes can be set using the optional
      * maxAxes argument.  It will default to 6, 3 on the left and 3 on the right.
-     * @param {Function} [useCustomYRange=()=>{}]
-     * @param {String|Array} [domain]
-     * @param {Number} [maxAxes=6]
+     * @param {Function} [yScale=()=>{}]
+     * @param {String|Array} [yDomain]
+     * @param {Number} [maxYAxes=6]
      * @returns {Function}
      */
-    useCustomYRange (useCustomYRange, domain, maxAxes=6) {
+    multiYAxisDomainData (yScale, yDomain, maxYAxes=6) {
         if (!arguments.length) {
-            return this._useCustomYRange;
+            return this._yScale;
         }
 
-        this._useCustomYRange = useCustomYRange;
-        this._domain = domain;
-        this._maxAxes = maxAxes;
+        this._yScale = yScale;
+        this._yDomain = yDomain;
+        this._maxYAxes = maxYAxes;
 
         return this;
     }

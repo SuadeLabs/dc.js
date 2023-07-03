@@ -110,18 +110,15 @@
 
             const barsLength = values.filter((chartData) => (chartData.type === 'bar')).length;
 
-            let useRight = false;
             values.forEach((chartData, index) => {
-                // alternate between left and right axis
-                useRight = !useRight;
-                singleCharts.push(buildChart(chartData, compChart, true, index, barsLength, useRight));
+                singleCharts.push(buildChart(chartData, compChart, true, index, barsLength));
             });
 
             return compChart.compose(singleCharts);
         };
 
         // Builds a chart using its type and data, setting type specific parameters
-        function buildChart(chartData, root, comp = false, index = 0, barsLength, useRight = false) {
+        function buildChart(chartData, root, comp = false, index = 0, barsLength) {
             const {dimension, group} = processedData[index];
             let barChart;
             let colours = DEFAULT_OPTIONS.colours;
@@ -139,32 +136,35 @@
                 .centerBar(true)
                 .colorAccessor((d) => d.key)
                 .ordinalColors(colours)
-                .useCustomYRange(y.y, chartData.yAxis.useRange)
-                .useRightYAxis(useRight);
+                .multiYAxisDomainData(y.y, chartData.yAxis.domain)
+                .useRightYAxis(chartData.yAxis.right || false);
 
             return barChart;
         };
 
         function createYAxis(chartData, index) {
             const {group} = processedData[index];
+            let domain;
 
-            let domainRange = yDomains[chartData.name];
+            if (yDomains[chartData.name] !== undefined) {
+                let domainRange = yDomains[chartData.name];
 
-            if (typeof chartData.yAxis.useRange === 'string' && yDomains[chartData.yAxis.useRange] !== undefined) {
-                domainRange = yDomains[chartData.yAxis.useRange];
-            }
+                if (typeof chartData.yAxis.domain === 'string' && yDomains[chartData.yAxis.domain] !== undefined) {
+                    domainRange = yDomains[chartData.yAxis.domain];
+                }
 
-            let domain = [0, domainRange[1]]
+                domain = [0, domainRange[1]]
 
-            if (lowestYMin < 0) {
-                const yMax = Math.max(...[Math.abs(domainRange[0]), Math.abs(domainRange[1])])
+                if (lowestYMin < 0) {
+                    const yMax = Math.max(...[Math.abs(domainRange[0]), Math.abs(domainRange[1])])
 
-                // Need to use yMax value to align 0 across all axes when there are negative values
-                domain = [-yMax, yMax];
+                    // Need to use yMax value to align 0 across all axes when there are negative values
+                    domain = [-yMax, yMax];
+                }
             }
 
             return {
-                y: d3.scaleLinear().domain(domain),
+                y: domain ? d3.scaleLinear().domain(domain) : {},
                 yUnits: dc.units.integers,
                 ticks: {count: 8},
             };
@@ -297,13 +297,15 @@
 
         values.forEach((chartDataValues, index) => {
 
-            yDomains[chartDataValues.name] = chartDataValues.yAxis.useRange
+            if (chartDataValues.yAxis.domain) {
+                yDomains[chartDataValues.name] = chartDataValues.yAxis.domain
 
-            if (typeof chartDataValues.yAxis.useRange !== 'string') {
-                const min = Math.min(...chartDataValues.yAxis.useRange);
+                if (typeof chartDataValues.yAxis.domain !== 'string') {
+                    const min = Math.min(...chartDataValues.yAxis.domain);
 
-                if (index === 0 || min < lowestYMin) {
-                    lowestYMin = min;
+                    if (index === 0 || min < lowestYMin) {
+                        lowestYMin = min;
+                    }
                 }
             }
 

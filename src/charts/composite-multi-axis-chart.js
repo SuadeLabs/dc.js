@@ -1,40 +1,53 @@
 import {CompositeChart} from './composite-chart';
 import {transition} from '../core/core';
+import {scaleLinear} from 'd3-scale';
 
 export class CompositeMultiAxisChart extends CompositeChart {
     constructor (parent, chartGroup) {
         super(parent, chartGroup);
 
-        this._customRanges = [];
+        this._yScaleArray = [];
         this._markerPositions = {}
         this._centerXAxis = false;
     }
 
-    _calculateYAxisRanges () {
+    _calculateYAxisRanges (left, right) {
+
+        let lyAxisMin, lyAxisMax, ryAxisMin, ryAxisMax;
+
+        if (left) {
+            lyAxisMin = this._yAxisMin();
+            lyAxisMax = this._yAxisMax();
+        }
+
+        if (right) {
+            ryAxisMin = this._rightYAxisMin();
+            ryAxisMax = this._rightYAxisMax();
+        }
+
+
         this._children.forEach(child => {
-            if (child._domain[0] < 0) {
+            if (!child._yDomain) {
+                child._yDomain = left ? [lyAxisMin, lyAxisMax] : [ryAxisMin, ryAxisMax];
+            }
+            if (child._yDomain[0] < 0) {
                 this._centerXAxis = true;
             }
-            this._customRanges[child._groupName] = {range: child._useCustomYRange};
+            this._yScaleArray[child._groupName] = {yScale: child._yScale};
         });
     }
 
     _prepareYAxis () {
-        this._calculateYAxisRanges();
+        this._removeMarkers();
+        const left = (this._leftYAxisChildren().length !== 0);
+        const right = (this._rightYAxisChildren().length !== 0);
+        this._calculateYAxisRanges(left, right);
 
         this._children.forEach(child => {
             if (child.useRightYAxis()) {
-                this.rightY(child._useCustomYRange.rangeRound([this.yAxisHeight(), 0]));
-
-                this._customRanges[child._groupName].y = this.rightY();
-
-                this._addMarker(child, true);
+                this._prepareRightYAxis(child);
             } else {
-                this.y(child._useCustomYRange.rangeRound([this.yAxisHeight(), 0]));
-
-                this._customRanges[child._groupName].y = this.y();
-
-                this._addMarker(child, false)
+                this._prepareLeftYAxis(child);
             }
         });
 
@@ -45,10 +58,38 @@ export class CompositeMultiAxisChart extends CompositeChart {
         }
     }
 
+    _prepareLeftYAxis (child) {
+        if (Object.keys(child._yScale).length === 0) {
+            child._yScale = scaleLinear();
+        }
+
+        this.y(child._yScale.rangeRound([this.yAxisHeight(), 0]));
+
+        this._yScaleArray[child._groupName].y = this.y();
+
+        this._addMarker(child, false)
+    }
+
+    _prepareRightYAxis (child) {
+        if (Object.keys(child._yScale).length === 0) {
+            child._yScale = scaleLinear();
+        }
+
+        this.rightY(child._yScale.rangeRound([this.yAxisHeight(), 0]));
+
+        this._yScaleArray[child._groupName].y = this.rightY();
+
+        this._addMarker(child, false)
+    }
+
+    _removeMarkers () {
+        this._markerPositions = {};
+        this.svg().selectAll('.axis-marker').remove();
+    }
+
     _addMarker (child, isRight) {
-        if (typeof child._domain !== 'string') {
+        if (typeof child._yDomain !== 'string') {
             this._markerPositions[child._groupName] = {
-                cleanName: child._groupName.split(/\/+|\(|\)|\s/g).join('').toLowerCase(),
                 axisPos: 0,
                 isRight: isRight,
                 markers: [child._groupName]
@@ -71,8 +112,8 @@ export class CompositeMultiAxisChart extends CompositeChart {
             child.x(this.x());
             child.xAxis(this.xAxis());
 
-            child.y(this._customRanges[child._groupName].y);
-            child.yAxis(this.yAxis().scale(this._customRanges[child._groupName].y))
+            child.y(this._yScaleArray[child._groupName].y);
+            child.yAxis(this.yAxis().scale(this._yScaleArray[child._groupName].y))
 
             child.plotData();
 
@@ -83,18 +124,16 @@ export class CompositeMultiAxisChart extends CompositeChart {
     }
 
     _drawMarker (child, index) {
-        const markerName = `${this._markerPositions[child._groupName].cleanName}-marker`;
-        const isMarkerEmpty = this.svg().select(`#${markerName}`).empty();
+        const yName = child._groupName.split(/\/+|\(|\)|\s/g).join('').toLowerCase();
 
-        if (isMarkerEmpty) {
-            child.g()
-                .append('circle')
-                .attr('id', `${markerName}`)
-                .attr('fill', child.getColor(index))
-                .attr('cx', 0)
-                .attr('cy', 20)
-                .attr('r', 5)
-        }
+        child.g()
+        .append('circle')
+        .attr('id', `${yName}-marker`)
+        .attr('class', 'axis-marker')
+        .attr('fill', child.getColor(index))
+        .attr('cx', 0)
+        .attr('cy', 20)
+        .attr('r', 5)
     }
 
     renderXAxis (g) {
@@ -124,62 +163,55 @@ export class CompositeMultiAxisChart extends CompositeChart {
     }
 
     _updateMarkerXPos (child) {
-        let markerGroup = {};
+        if (typeof child._yDomain !== 'string') {
+            const markerGroup = this._markerPositions[child._groupName];
 
-        if (typeof child._domain !== 'string') {
-            markerGroup = this._markerPositions[child._groupName];
-        } else {
-            markerGroup = this._markerPositions[child._domain];
+            markerGroup.markers.forEach((marker, index) => {
+                const yName = marker.split(/\/+|\(|\)|\s/g).join('').toLowerCase();
+                const offset = markerGroup.isRight ? markerGroup.axisPos + index * 12 : markerGroup.axisPos - index * 12;
+
+                this.svg()
+            .select(`#${yName}-marker`)
+            .attr('cx', offset);
+            });
         }
-
-        markerGroup.markers.forEach((marker, index) => {
-            const offset = markerGroup.isRight ? markerGroup.axisPos + index * 12 : markerGroup.axisPos - index * 12;
-
-            this.svg()
-                .select(`#${this._markerPositions[child._groupName].cleanName}-marker`)
-                .attr('cx', offset);
-        });
     }
 
     _createLeftYAxis (child, index) {
-        if (typeof child._domain !== 'string') {
-            const yLeftPos = this.margins().left - index * (this.margins().left / this._maxAxes + this._maxAxes);
+        if (typeof child._yDomain !== 'string') {
+            const yLeftPos = this.margins().left - index * (this.margins().left / this._maxYAxes + this._maxYAxes);
 
-            if (this._markerPositions[child._groupName]) {
-                this._markerPositions[child._groupName].axisPos = yLeftPos;
-            }
+            this._markerPositions[child._groupName].axisPos = yLeftPos;
 
             this.renderYAxisAt(
                 `y${index}`,
-                this.yAxis().scale(this._customRanges[child._groupName].y),
+                this.yAxis().scale(this._yScaleArray[child._groupName].y),
                 yLeftPos
             );
 
             this.renderYAxisLabel(`y${index}`, this.yAxisLabel(), -90);
         }
-        else if(this._markerPositions[child._domain]) {
-            this._markerPositions[child._domain].markers.push(child._groupName);
+        else {
+            this._markerPositions[child._yDomain].markers.push(child._groupName);
         }
     }
 
     _createRightYAxis (child, index) {
-        if (typeof child._domain !== 'string') {
-            const yRightPos = this.width() - this.margins().right + index * (this.margins().right / this._maxAxes + this._maxAxes);
+        if (typeof child._yDomain !== 'string') {
+            const yRightPos = this.width() - this.margins().right + index * (this.margins().right / this._maxYAxes + this._maxYAxes);
 
-            if (this._markerPositions[child._groupName]) {
-                this._markerPositions[child._groupName].axisPos = yRightPos;
-            }
+            this._markerPositions[child._groupName].axisPos = yRightPos;
 
             this.renderYAxisAt(
                 `yr${index}`,
-                this.rightYAxis().scale(this._customRanges[child._groupName].y),
+                this.rightYAxis().scale(this._yScaleArray[child._groupName].y),
                 yRightPos
             );
 
             this.renderYAxisLabel(`yr${index}`, this.rightYAxisLabel(), 90, this.width() - this._rightYAxisLabelPadding);
         }
-        else if(this._markerPositions[child._domain]) {
-            this._markerPositions[child._domain].markers.push(child._groupName);
+        else {
+            this._markerPositions[child._yDomain].markers.push(child._groupName);
         }
     }
 }

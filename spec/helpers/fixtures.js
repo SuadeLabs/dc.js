@@ -315,7 +315,7 @@ function loadMultiYChartData () {
                 'type': 'linear',
                 'seriesKey': 'value',
                 'label': '',
-                'useRange': [
+                'domain': [
                     20,
                     200
                 ],
@@ -343,7 +343,7 @@ function loadMultiYChartData () {
                 'type': 'linear',
                 'seriesKey': 'value',
                 'label': '',
-                'useRange': [
+                'domain': [
                     1000,
                     2000
                 ],
@@ -371,7 +371,7 @@ function loadMultiYChartData () {
                 'type': 'linear',
                 'seriesKey': 'value',
                 'label': '',
-                'useRange': [
+                'domain': [
                     4466,
                     95382
                 ],
@@ -399,7 +399,7 @@ function loadMultiYChartData () {
                 'type': 'linear',
                 'seriesKey': 'value',
                 'label': '',
-                'useRange': [
+                'domain': [
                     100296454.29,
                     326088010.98
                 ],
@@ -427,7 +427,7 @@ function loadMultiYChartData () {
                 'type': 'linear',
                 'seriesKey': 'value',
                 'label': '',
-                'useRange': 'AxisTest3'
+                'domain': 'AxisTest3'
             },
             'values': [
                 {
@@ -450,7 +450,7 @@ function loadMultiYChartData () {
                 'type': 'linear',
                 'seriesKey': 'value',
                 'label': '',
-                'useRange': [
+                'domain': [
                     0.1,
                     1.0
                 ],
@@ -478,7 +478,7 @@ function loadMultiYChartData () {
                 'type': 'linear',
                 'seriesKey': 'value',
                 'label': '',
-                'useRange': 'AxisTest4'
+                'domain': 'AxisTest4'
             },
             'values': [
                 {

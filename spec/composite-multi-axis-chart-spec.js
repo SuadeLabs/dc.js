@@ -18,7 +18,7 @@ describe('dc.compositeMultiAxisChart', () => {
                                     .centerBar(true)
                                     .group(processedData[index].dataValueSumGroup, barChart.name || ` ${index}`)
                                     .gap(1)
-                                    .useCustomYRange(barChart.yAxis.useRange)
+                                    .multiYAxisDomainData(barChart.yAxis.domain)
                                     .useRightYAxis(useRight)
 
             useRight = !useRight; // alternate between left and right y axis
