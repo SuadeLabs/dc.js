@@ -173,19 +173,6 @@
 
             const y = createYAxis(chartData, index);
 
-            // chartToUse = dc.barChart(root)
-            //     .gap(1) // fix for - https://github.com/dc-js/dc.js/issues/1827#issuecomment-827083074
-            //     .dimension(dimension)
-            //     .group(group, chartData.name || '' + index)
-            //     .centerBar(true)
-            //     .colorAccessor((d) => d.key)
-            //     .ordinalColors(colours)
-            //     .multiYAxisDomainData(y.y, chartData.yAxis.domain)
-            //     .useRightYAxis(useRight);
-
-            console.log('buildChart chartData.yAxis.domain', chartData.yAxis.domain);
-            console.log('buildChart y domain', y.y.domain());
-
             chartToUse = dc.lineChart(root)
                 .dimension(dimension)
                 .group(group, chartData.name || '' + index)
