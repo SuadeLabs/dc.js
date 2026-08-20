@@ -33,7 +33,7 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
             // FIXME: We should not be mixing types here. This sits Suade side in the chartRangeBuilder
             if (typeof child._yDomain === 'string') {
-                 child._yDomain = this._children.find(c => c._groupName === child._yDomain)._yDomain;
+                child._yDomain = this._children.find(c => c._groupName === child._yDomain)._yDomain;
             }
 
             if (child._yDomain[0] < 0) {
