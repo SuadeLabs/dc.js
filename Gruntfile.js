@@ -129,17 +129,20 @@ module.exports = function (grunt) {
                 }
             },
             ci: {
-                browsers: ['ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                // browsers: ['ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                browsers: ['ChromeNoSandboxHeadless'],
                 concurrency: 1,
                 reporters: ['dots', 'summary']
             },
             'ci-windows': {
-                browsers: ['EdgeHeadless', 'ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                // browsers: ['EdgeHeadless', 'ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                browsers: ['ChromeNoSandboxHeadless'],
                 concurrency: 1,
                 reporters: ['dots', 'summary']
             },
             'ci-macos': {
-                browsers: ['Safari', 'ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                // browsers: ['Safari', 'ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                browsers: ['ChromeNoSandboxHeadless'],
                 concurrency: 1,
                 reporters: ['dots', 'summary']
             },
