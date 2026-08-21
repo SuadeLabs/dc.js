@@ -129,8 +129,6 @@
 
             const y = createYAxis(chartData, index);
 
-            console.log('chartData.yAxis.domain', chartData.yAxis.domain);
-
             if (chartData.type === 'bar') {
                 chartToUse = dc.barChart(root)
                     .gap(1) // fix for - https://github.com/dc-js/dc.js/issues/1827#issuecomment-827083074
@@ -178,7 +176,7 @@
             }
 
             return {
-                y: domain ? d3.scaleLinear().domain(domain) : {},
+                y: d3.scaleLinear().domain(domain),
                 yUnits: dc.units.integers,
                 ticks: {count: 8},
             };
@@ -186,7 +184,6 @@
 
         // Generate the required information for the X axis of a chart
         function createXAxis(chartData, index) {
-            console.log('chartData', chartData);
             let {group, binWidth, max, min} = processedData[index];
 
             return {
@@ -279,15 +276,20 @@
 
         // Derive dimensions, groups, binning and ranges from the crossfilter containg a chart data series
         function processData(chartData, index) {
-            let dimension;
-            let group;
+            const xSeriesKey = chartData.xAxis.seriesKey;
+            const ySeriesKey = chartData.yAxis.seriesKey;
 
             const ndx = crossFilters[index];
 
-            dimension = ndx.dimension((d) => d.key);
-            group = dimension.group().reduceSum((d) => d.value); // For data that is already grouped, use 'sum' of single value
+            const dimension = ndx.dimension((d) => {
+                if (d[xSeriesKey]) return d[xSeriesKey];
+            });
 
-            return {dimension: dimension, group: group};
+            const group = dimension.group().reduceSum((d) => {
+                return d[ySeriesKey];
+            }); // For data that is already grouped, use 'sum' of single value
+
+            return {dimension, group};
         };
 
         crossFilters.forEach((crossFilter) => {
@@ -296,18 +298,6 @@
                 crossFilter = undefined;
             }
         });
-
-        // Generate a cross filter from a series of chart data, depending on the data format
-        function createCrossFilter(chartData) {
-            return crossfilter(Object.keys(chartData.values[0]).map((key) => {
-                const ret = {};
-
-                ret['key'] = key;
-                ret['value'] = chartData.values[0][key];
-
-                return ret;
-            }));
-        };
 
         processedData.splice(0, processedData.length);
 
@@ -325,7 +315,7 @@
                 }
             }
 
-            crossFilters[index] = createCrossFilter(chartDataValues);
+            crossFilters[index] = crossfilter(chartDataValues.values);
             processedData[index] = processData(chartDataValues, index);
         });
 
