@@ -322,7 +322,12 @@ export class Legend {
                 .classed('dc-tabbable', this._keyboardAccessible)
                 .attr('x', self._itemHeight + LABEL_GAP)
                 .attr('y', function () {
-                    return self._itemHeight / 2 + (this.clientHeight ? this.clientHeight : 13) / 2 - 2;
+                    // clientHeight is unreliable for SVG <text> elements across browsers
+                    // (it commonly reports 0 or an inconsistent value since <text> has no
+                    // CSS layout box). getBBox().height gives the actual rendered glyph
+                    // bounding box height, which is consistent across browsers/versions.
+                    const textHeight = this.getBBox ? this.getBBox().height : 0;
+                    return self._itemHeight / 2 + (textHeight || 13) / 2 - 2;
                 });
 
             if (this._keyboardAccessible) {
