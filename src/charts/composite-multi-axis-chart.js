@@ -53,7 +53,6 @@ export class CompositeMultiAxisChart extends CompositeChart {
     }
 
     _prepareYAxis () {
-        this._removeMarkers();
         const left = (this._leftYAxisChildren().length !== 0);
         const right = (this._rightYAxisChildren().length !== 0);
         this._calculateYAxisRanges(left, right);
@@ -105,6 +104,14 @@ export class CompositeMultiAxisChart extends CompositeChart {
     _addMarker (child, isRight) {
         if (typeof child._yDomain !== 'string') {
             const yAxisShared = this._yScaleArray[child._groupName].yAxisShared;
+            const markerPosExists = this._markerPositions[child._groupName] || this._markerPositions[yAxisShared]?.markers.includes(child._groupName);
+
+            // If a position exists it means it has already been drawn. No need create a new object in _markerPositions.
+            // _updateMarkerXPos will adjust the position once the Y axis is drawn. This is important for children that
+            // that share an axis.
+            if (markerPosExists) {
+                return;
+            }
 
             if (yAxisShared && this._markerPositions[yAxisShared]) {
                 this._markerPositions[yAxisShared].markers.push(child._groupName);
@@ -146,6 +153,13 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
     _drawMarker (child, index) {
         const yName = child._groupName.split(/\/+|\(|\)|\s/g).join('').toLowerCase();
+        const hasMarker = this.svg().select(`#${yName}-marker`).node();
+
+        // Do not redraw marker if it exists. If a chart has a selector chart attached
+        // clicking on the selector will trigger a redraw which will duplicate the marker.
+        if (hasMarker) {
+            return;
+        }
 
         child.g()
         .append('circle')
