@@ -6,13 +6,13 @@ export class CompositeMultiAxisChart extends CompositeChart {
     constructor (parent, chartGroup) {
         super(parent, chartGroup);
 
-        this._yScaleArray = [];
+        this._yScaleArray = {};
         this._markerPositions = {}
         this._centerXAxis = false;
+        this._yAxisOwners = new Map();
     }
 
     _calculateYAxisRanges (left, right) {
-
         let lyAxisMin, lyAxisMax, ryAxisMin, ryAxisMax;
 
         if (left) {
@@ -30,15 +30,29 @@ export class CompositeMultiAxisChart extends CompositeChart {
             if (!child._yDomain) {
                 child._yDomain = left ? [lyAxisMin, lyAxisMax] : [ryAxisMin, ryAxisMax];
             }
+
+            // FIXME: We should not be mixing types here. This sits Suade side in the chartRangeBuilder
+            if (typeof child._yDomain === 'string') {
+                child._yDomain = this._children.find(c => c._groupName === child._yDomain)._yDomain;
+            }
+
             if (child._yDomain[0] < 0) {
                 this._centerXAxis = true;
             }
-            this._yScaleArray[child._groupName] = {yScale: child._yScale};
+
+            this._yScaleArray[child._groupName] = {yScale: child._yScale, yDomain: child._yDomain};
+
+            const flatScaleKey = child._yDomain.join('');
+
+            if (this._yAxisOwners.has(flatScaleKey)) {
+                this._yScaleArray[child._groupName].yAxisShared = this._yAxisOwners.get(flatScaleKey);
+            } else {
+                this._yAxisOwners.set(flatScaleKey, child._groupName);
+            }
         });
     }
 
     _prepareYAxis () {
-        this._removeMarkers();
         const left = (this._leftYAxisChildren().length !== 0);
         const right = (this._rightYAxisChildren().length !== 0);
         this._calculateYAxisRanges(left, right);
@@ -79,7 +93,7 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
         this._yScaleArray[child._groupName].y = this.rightY();
 
-        this._addMarker(child, false)
+        this._addMarker(child, true)
     }
 
     _removeMarkers () {
@@ -89,10 +103,24 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
     _addMarker (child, isRight) {
         if (typeof child._yDomain !== 'string') {
-            this._markerPositions[child._groupName] = {
-                axisPos: 0,
-                isRight: isRight,
-                markers: [child._groupName]
+            const yAxisShared = this._yScaleArray[child._groupName].yAxisShared;
+            const markerPosExists = this._markerPositions[child._groupName] || this._markerPositions[yAxisShared]?.markers.includes(child._groupName);
+
+            // If a position exists it means it has already been drawn. No need create a new object in _markerPositions.
+            // _updateMarkerXPos will adjust the position once the Y axis is drawn. This is important for children that
+            // that share an axis.
+            if (markerPosExists) {
+                return;
+            }
+
+            if (yAxisShared && this._markerPositions[yAxisShared]) {
+                this._markerPositions[yAxisShared].markers.push(child._groupName);
+            } else {
+                this._markerPositions[child._groupName] = {
+                    axisPos: 0,
+                    isRight: isRight,
+                    markers: [child._groupName]
+                }
             }
         }
     }
@@ -125,6 +153,13 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
     _drawMarker (child, index) {
         const yName = child._groupName.split(/\/+|\(|\)|\s/g).join('').toLowerCase();
+        const hasMarker = this.svg().select(`#${yName}-marker`).node();
+
+        // Do not redraw marker if it exists. If a chart has a selector chart attached
+        // clicking on the selector will trigger a redraw which will duplicate the marker.
+        if (hasMarker) {
+            return;
+        }
 
         child.g()
         .append('circle')
@@ -150,11 +185,15 @@ export class CompositeMultiAxisChart extends CompositeChart {
 
     renderYAxis () {
         this._leftYAxisChildren().forEach((child, index) => {
-            this._createLeftYAxis(child, index);
+            if (!this._yScaleArray[child._groupName].yAxisShared) {
+                this._createLeftYAxis(child, index);
+            }
         });
 
         this._rightYAxisChildren().forEach((child, index) => {
-            this._createRightYAxis(child, index);
+            if (!this._yScaleArray[child._groupName].yAxisShared) {
+                this._createRightYAxis(child, index);
+            }
         });
 
         this._children.forEach(child => {
@@ -166,13 +205,20 @@ export class CompositeMultiAxisChart extends CompositeChart {
         if (typeof child._yDomain !== 'string') {
             const markerGroup = this._markerPositions[child._groupName];
 
+            // Children sharing an axis (yAxisShared) don't own a markerPosition
+            // entry themselves - their marker is positioned when the owning
+            // axis's child is processed, so there's nothing to do here.
+            if (!markerGroup) {
+                return;
+            }
+
             markerGroup.markers.forEach((marker, index) => {
                 const yName = marker.split(/\/+|\(|\)|\s/g).join('').toLowerCase();
                 const offset = markerGroup.isRight ? markerGroup.axisPos + index * 12 : markerGroup.axisPos - index * 12;
 
                 this.svg()
-            .select(`#${yName}-marker`)
-            .attr('cx', offset);
+                  .select(`#${yName}-marker`)
+                  .attr('cx', offset);
             });
         }
     }

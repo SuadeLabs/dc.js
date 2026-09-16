@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>dc.js - Align Y Axes Example</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="../css/dc.css" />
+    <style>
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+        }
+
+        #content {
+            text-align: center;
+        }
+
+        code {
+            color: black;
+        }
+
+        #page {
+            height: 95vh;
+            width: 100%;
+        }
+
+        .chart-holder {
+            padding: 0 1em;
+        }
+
+        path.left {
+            stroke: #1f77b4;
+        }
+
+        path.right {
+            stroke: #ff7f0e;
+        }
+
+        path.horizontal {
+            stroke-width: 1;
+            stroke-opacity: 0.5;
+        }
+
+        path.zero {
+            stroke-dasharray: 4, 4;
+        }
+
+        path.zero.right {
+            stroke-dashoffset: 4;
+        }
+
+        path.extreme {
+            stroke-dasharray: 1, 1;
+        }
+
+        path.extreme.right {
+            stroke-dashoffset: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <script type="text/javascript" src="../js/d3.js"></script>
+    <script type="text/javascript" src="../js/crossfilter.js"></script>
+    <script type="text/javascript" src="../js/dc.js"></script>
+    <div class="container">
+        <script type="text/javascript" src="./header.js"></script>
+
+        <p>Multiple y-axis test page</p>
+    </div>
+    <div id="hscroll">
+        <div id="content"></div>
+    </div>
+
+    <script type="module">
+        import * as ChartData from './multi-y-axis-data.js';
+
+        const values = ChartData.default.dataComposite.values;
+
+        const DEFAULT_OPTIONS = {
+            transitionDuration: 500,
+            colours: [
+                '#1f78b480',
+                '#e31a1c80',
+                '#33a02c80',
+                '#ff7f0080',
+                '#6a3d9a80',
+                '#b1592880',
+                '#a6cee380',
+                '#b2df8a80',
+                '#fb9a9980',
+                '#fdbf6f80',
+                '#cab2d680',
+                '#ffff9980'
+            ],
+        };
+
+        let chart;
+        let crossFilters = [];
+        let processedData = [];
+        let yDomains = {};
+        let lowestYMin = 0;
+
+        function composeChart(anchor) {
+
+            const compChart = dc.compositeMultiAxisChart(anchor);
+            const singleCharts = [];
+
+            const barsLength = values.filter((chartData) => (chartData.type === 'bar')).length;
+
+            values.forEach((chartData, index) => {
+                singleCharts.push(buildChart(chartData, compChart, true, index, barsLength));
+            });
+
+            return compChart.compose(singleCharts)._rangeBandPadding(1);
+        };
+
+        // Builds a chart using its type and data, setting type specific parameters
+        function buildChart(chartData, root, comp, index = 0, barsLength) {
+            const {dimension, group} = processedData[index];
+            let chartToUse;
+            let colours = DEFAULT_OPTIONS.colours;
+
+            if (barsLength && barsLength > 1 && colours.length > index) {
+                colours = colours.slice(index, index + 1);
+            }
+
+            const y = createYAxis(chartData, index);
+
+            if (chartData.type === 'bar') {
+                chartToUse = dc.barChart(root)
+                    .gap(1) // fix for - https://github.com/dc-js/dc.js/issues/1827#issuecomment-827083074
+                    .dimension(dimension)
+                    .group(group, chartData.name || '' + index)
+                    .centerBar(true)
+                    .colorAccessor((d) => d.key)
+                    .ordinalColors(colours)
+                    .multiYAxisDomainData(y.y, chartData.yAxis.domain)
+                    .useRightYAxis(chartData.yAxis.right || false);
+            }
+
+            if (chartData.type === 'line') {
+                chartToUse = dc.lineChart(root)
+                    .dimension(dimension)
+                    .group(group, chartData.name || '' + index)
+                    .colorAccessor((d) => d.key)
+                    .ordinalColors(colours)
+                    .multiYAxisDomainData(y.y, chartData.yAxis.domain || [])
+                    .useRightYAxis(chartData.yAxis.right || useRight);
+            }
+
+            return chartToUse;
+        };
+
+        function createYAxis(chartData, index) {
+            const {group} = processedData[index];
+            let domain;
+
+            if (yDomains[chartData.name] !== undefined) {
+                let domainRange = yDomains[chartData.name];
+
+                if (typeof chartData.yAxis.domain === 'string' && yDomains[chartData.yAxis.domain] !== undefined) {
+                    domainRange = yDomains[chartData.yAxis.domain];
+                }
+
+                domain = [0, domainRange[1]]
+
+                if (lowestYMin < 0) {
+                    const yMax = Math.max(...[Math.abs(domainRange[0]), Math.abs(domainRange[1])])
+
+                    // Need to use yMax value to align 0 across all axes when there are negative values
+                    domain = [-yMax, yMax];
+                }
+            }
+
+            return {
+                y: d3.scaleLinear().domain(domain),
+                yUnits: dc.units.integers,
+                ticks: {count: 8},
+            };
+        }
+
+        // Generate the required information for the X axis of a chart
+        function createXAxis(chartData, index) {
+            let {group, binWidth, max, min} = processedData[index];
+
+            return {
+                x: d3.scaleBand().domain(group.all().map((v) => v.key)),
+                xUnits: dc.units.ordinal,
+            };
+        }
+
+        // Render the chart for this component,
+        function renderChart() {
+            const container = d3.select('#content')
+
+            chart = composeChart(container);
+            chart.yAxis().ticks(8, d3.format('~s'));
+            chart.rightYAxis().ticks(8, d3.format('~s'));
+
+            const xAxis = createXAxis(values, 0);
+            const chartWidth = container.node().getBoundingClientRect().width;
+
+            chart
+                .width(chartWidth)
+                .height(300)
+                .transitionDuration(DEFAULT_OPTIONS.transitionDuration)
+                .x(xAxis.x)
+                .xUnits(xAxis.xUnits)
+                .yAxisLabel(values[0].yAxis.label)
+                .brushOn(false)
+                ._rangeBandPadding(1) // fix for - https://github.com/dc-js/dc.js/issues/1827#issuecomment-827083074
+                .margins({top: 40, left: 200, right: 200, bottom: 60})
+                .renderHorizontalGridLines(true)
+                .renderVerticalGridLines(false);
+
+
+            addLegend(chart);
+
+            // Some SVG modifications need to be done on each render. Namespace listener with .svg
+            chart.on('pretransition.svg', (chart) => {
+                handleUpdatesAfterRender(chart);
+            });
+
+            // create holes if value is NaN
+            if (chart.defined) {
+                chart.defined((d) => !isNaN(d.y));
+            }
+
+            chart.render();
+        }
+
+        function addLegend(chart) {
+            const legendWidthWithRightPadding = dc.legend().itemWidth() + 15;
+
+            chart.legend(
+                dc.legend()
+                    .x(-legendWidthWithRightPadding)
+                    .y(10)
+                    .itemHeight(13)
+                    .gap(5)
+            );
+        }
+
+        function handleUpdatesAfterRender(chart) {
+            updateSvgViewBox();
+
+            // When compositing multiple bar charts, we need to shrink the width of the bars and pad them into groups
+            if (values.filter((chartData) => (chartData.type === 'bar')).length > 1) {
+                const subs = chart.selectAll('.sub');
+                const barPadding = 3 / subs.size();
+                const subScale = d3.scaleLinear().domain([0, subs.size()]).range([0, 100]);
+
+                subs.each(function(d, i) {
+                    let startAt = subScale(i + 1) - subScale(1);
+                    let endAt = subScale(i + 1);
+
+                    startAt += barPadding + (i === 0 ? barPadding * 5 : 0);
+                    endAt -= (barPadding + (i === subs.size() - 1 ? barPadding * 5 : 0));
+
+                    d3.select(this)
+                        .selectAll('rect')
+                        .attr('clip-path', `polygon(${startAt}% 0, ${endAt}% 0, ${endAt}% 100%, ${startAt}% 100%)`);
+                });
+            }
+        }
+
+        function updateSvgViewBox() {
+            const legendWidthWithRightPadding = dc.legend().itemWidth() + 15;
+            const viewBoxParams = `-${legendWidthWithRightPadding + 5} 0 ${chart.width() + legendWidthWithRightPadding} ${chart.height()}`;
+
+            d3.select('svg').attr('viewBox', viewBoxParams);
+        }
+
+        // Derive dimensions, groups, binning and ranges from the crossfilter containg a chart data series
+        function processData(chartData, index) {
+            const xSeriesKey = chartData.xAxis.seriesKey;
+            const ySeriesKey = chartData.yAxis.seriesKey;
+
+            const ndx = crossFilters[index];
+
+            const dimension = ndx.dimension((d) => {
+                if (d[xSeriesKey]) return d[xSeriesKey];
+            });
+
+            const group = dimension.group().reduceSum((d) => {
+                return d[ySeriesKey];
+            }); // For data that is already grouped, use 'sum' of single value
+
+            return {dimension, group};
+        };
+
+        crossFilters.forEach((crossFilter) => {
+            if (crossFilter) {
+                crossFilter.remove();
+                crossFilter = undefined;
+            }
+        });
+
+        processedData.splice(0, processedData.length);
+
+        values.forEach((chartDataValues, index) => {
+
+            if (chartDataValues.yAxis.domain) {
+                yDomains[chartDataValues.name] = chartDataValues.yAxis.domain
+
+                if (typeof chartDataValues.yAxis.domain !== 'string') {
+                    const min = Math.min(...chartDataValues.yAxis.domain);
+
+                    if (index === 0 || min < lowestYMin) {
+                        lowestYMin = min;
+                    }
+                }
+            }
+
+            crossFilters[index] = crossfilter(chartDataValues.values);
+            processedData[index] = processData(chartDataValues, index);
+        });
+
+        renderChart();
+    </script>
+</body>
+
+</html>

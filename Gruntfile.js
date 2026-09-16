@@ -8,8 +8,6 @@ module.exports = function (grunt) {
 
     grunt.loadNpmTasks('grunt-karma');
 
-    const formatFileList = require('./grunt/format-file-list')(grunt);
-
     const pkgFile =  require('./package.json');
     const pkgName = pkgFile.name.split('/')[1];
 
@@ -27,23 +25,11 @@ module.exports = function (grunt) {
     // in d3v4 and d3v5 pre-built d3.js are in different sub folders
     const d3pkgSubDir = config.pkg.dependencies.d3.split('.')[0].replace(/[^\d]/g, '') === '4' ? 'build' : 'dist';
 
-    const lintableFiles = `'${config.src}' '${config.spec}' '*.js' 'grunt/*.js' '<%= conf.websrc %>/stock.js'`;
-
-    const sass = require('node-sass');
+    const lintableFiles = `'${config.src}' '${config.spec}' '*.js' '<%= conf.websrc %>/stock.js'`;
 
     grunt.initConfig({
         conf: config,
 
-        sass: {
-            options: {
-                implementation: sass
-            },
-            dist: {
-                files: {
-                    '<%= conf.dist %>/style/<%= conf.pkgName %>.css': 'style/<%= conf.pkgName %>.scss'
-                }
-            }
-        },
         cssmin: {
             options: {
                 shorthandCompacting: false,
@@ -143,17 +129,20 @@ module.exports = function (grunt) {
                 }
             },
             ci: {
-                browsers: ['ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                // browsers: ['ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                browsers: ['ChromeNoSandboxHeadless'],
                 concurrency: 1,
                 reporters: ['dots', 'summary']
             },
             'ci-windows': {
-                browsers: ['EdgeHeadless', 'ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                // browsers: ['EdgeHeadless', 'ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                browsers: ['ChromeNoSandboxHeadless'],
                 concurrency: 1,
                 reporters: ['dots', 'summary']
             },
             'ci-macos': {
-                browsers: ['Safari', 'ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                // browsers: ['Safari', 'ChromeNoSandboxHeadless', 'FirefoxHeadless'],
+                browsers: ['ChromeNoSandboxHeadless'],
                 concurrency: 1,
                 reporters: ['dots', 'summary']
             },
@@ -223,7 +212,7 @@ module.exports = function (grunt) {
                             '<%= conf.dist %>/<%= conf.pkgName %>.min.js.map',
                             `node_modules/d3/${d3pkgSubDir}/d3.js`,
                             'node_modules/crossfilter2/crossfilter.js',
-                            'node_modules/file-saver/FileSaver.js',
+                            'node_modules/file-saver/dist/FileSaver.js',
                             'node_modules/reductio/reductio.js',
                             'node_modules/regression/dist/regression.js'
                         ],
@@ -255,70 +244,6 @@ module.exports = function (grunt) {
                             return `${dest}compare-versions.js`;
                         }
                     }
-                ]
-            }
-        },
-        fileindex: {
-            'examples-listing': {
-                options: {
-                    format: formatFileList,
-                    absolute: true,
-                    title: 'Index of dc.js examples',
-                    heading: 'Examples of using dc.js',
-                    description: 'An attempt to present a simple example of each chart type.',
-                    also: ['transitions', 'resizing', 'zoom'],
-                    sourceLink: 'https://github.com/dc-js/dc.js/tree/develop/<%= conf.websrc %>/examples'
-                },
-                files: [
-                    {dest: '<%= conf.web %>/examples/index.html', src: ['<%= conf.websrc %>/examples/*.html']}
-                ]
-            },
-            'transitions-listing': {
-                options: {
-                    format: formatFileList,
-                    absolute: true,
-                    title: 'Index of dc.js transition tests',
-                    heading: 'Eyeball tests for dc.js transitions',
-                    description: 'Transitions can only be tested by eye. ' +
-                        'These pages automate the transitions so they can be visually verified.',
-                    also: ['examples', 'resizing', 'zoom'],
-                    sourceLink: 'https://github.com/dc-js/dc.js/tree/develop/<%= conf.websrc %>/transitions'
-                },
-                files: [
-                    {dest: '<%= conf.web %>/transitions/index.html', src: ['<%= conf.websrc %>/transitions/*.html']}
-                ]
-            },
-            'resizing-listing': {
-                options: {
-                    format: formatFileList,
-                    absolute: true,
-                    title: 'Index of dc.js resizing tests',
-                    heading: 'Eyeball tests for resizing dc.js charts',
-                    description: 'It\'s a lot easier to test resizing behavior by eye. ' +
-                        'These pages fit the charts to the browser dynamically so it\'s easier to test. ' +
-                        'For the examples with a single chart taking up the entire window, you can add <code>?resize=viewbox</code> ' +
-                        'to the URL to test resizing the chart using the ' +
-          '<a href="http://dc-js.github.io/dc.js/docs/html/dc.baseMixin.html#useViewBoxResizing__anchor">useViewBoxResizing</a> strategy.',
-                    also: ['examples', 'transitions', 'zoom'],
-                    sourceLink: 'https://github.com/dc-js/dc.js/tree/develop/<%= conf.websrc %>/resizing'
-                },
-                files: [
-                    {dest: '<%= conf.web %>/resizing/index.html', src: ['<%= conf.websrc %>/resizing/*.html']}
-                ]
-            },
-            'zoom-listing': {
-                options: {
-                    format: formatFileList,
-                    absolute: true,
-                    title: 'Index of dc.js zoom tests',
-                    heading: 'Interactive test for dc.js chart zoom',
-                    description: 'It\'s hard to conceive of a way to test zoom except by trying it. ' +
-                        'So this is a substitute for automated tests in this area',
-                    also: ['examples', 'transitions', 'resizing'],
-                    sourceLink: 'https://github.com/dc-js/dc.js/tree/develop/<%= conf.websrc %>/zoom'
-                },
-                files: [
-                    {dest: '<%= conf.web %>/zoom/index.html', src: ['<%= conf.websrc %>/zoom/*.html']}
                 ]
             }
         },
@@ -387,6 +312,32 @@ module.exports = function (grunt) {
     grunt.registerTask('update-stock-example', 'Update the baseline stock example web page.', function () {
         require('./regression/stock-regression-test.js').updateStockExample(this.async());
     });
+    grunt.registerTask('sass', 'Compile SCSS to CSS using the modern Dart Sass JS API', () => {
+        // Calling the modern `sass.compile` API directly (rather than going through the
+        // grunt-sass plugin) avoids grunt-sass's legacy/modern implementation auto-detection,
+        // which throws "options.implementation.compileAsync is not a function" against
+        // current Dart Sass releases now that the legacy render/renderSync API is removed.
+        const sass = require('sass');
+        const src = `style/${config.pkgName}.scss`;
+        const destFile = `${config.dist}/style/${config.pkgName}.css`;
+        const mapFile = `${destFile}.map`;
+
+        const result = sass.compile(src, {
+            style: 'expanded',
+            sourceMap: true,
+            sourceMapIncludeSources: true
+        });
+
+        let css = result.css;
+        if (result.sourceMap) {
+            result.sourceMap.file = `${config.pkgName}.css`;
+            css += `\n/*# sourceMappingURL=${config.pkgName}.css.map */\n`;
+            grunt.file.write(mapFile, JSON.stringify(result.sourceMap));
+        }
+        grunt.file.write(destFile, css);
+        grunt.log.ok(`File ${destFile} created.`);
+    });
+
     grunt.registerTask('watch:scripts-sass-docs', () => {
         grunt.config('watch', {
             scripts: grunt.config('watch').scripts,
@@ -399,10 +350,10 @@ module.exports = function (grunt) {
     // task aliases
     grunt.registerTask('build', ['shell:dist-clean', 'shell:rollup', 'sass', 'cssmin']);
     // grunt-docco2 is deprecated https://www.npmjs.com/package/grunt-docco2 either fork and fix issues or look for new plugin
-    // grunt.registerTask('docs', ['build', 'copy', 'jsdoc', 'jsdoc2md', 'docco', 'fileindex']);
-    grunt.registerTask('docs', ['build', 'copy', 'jsdoc', 'jsdoc2md', 'fileindex']);
+    // grunt.registerTask('docs', ['build', 'copy', 'jsdoc', 'jsdoc2md', 'docco']);
+    grunt.registerTask('docs', ['build', 'copy', 'jsdoc', 'jsdoc2md']);
     grunt.registerTask('web', ['docs', 'gh-pages']);
-    grunt.registerTask('server-only', ['docs', 'fileindex', 'jasmine:specs:build', 'connect:server']);
+    grunt.registerTask('server-only', ['docs', 'jasmine:specs:build', 'connect:server']);
     grunt.registerTask('server', ['server-only', 'watch:scripts-sass-docs']);
     // This task will active server, test when initiated, and then keep a watch for changes, and rebuild and test as needed
     grunt.registerTask('test-n-serve', ['server-only', 'test', 'watch:tests']);
